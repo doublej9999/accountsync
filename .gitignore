@@ -1,0 +1,12 @@
+/.idea/.gitignore
+/syncservice/migrations/0001_initial.py
+/syncservice/migrations/__init__.py
+/.idea/accountsync.iml
+/.idea/data_source_mapping.xml
+/.idea/dataSources.xml
+/web/.vscode/extensions.json
+/.idea/misc.xml
+/.idea/modules.xml
+/web/pnpm-lock.yaml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
