@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 import time
 
-from syncservice.models import HrPerson, SyncConfig
+from syncservice.models import HrPerson, HrPersonAccount, SyncConfig
 
 
 class Command(BaseCommand):
@@ -223,6 +223,9 @@ class Command(BaseCommand):
                 synced_count += 1
                 if created:
                     self.stdout.write(f'新增人员: {person.employee_number} - {person.full_name}')
+                    # 为新人员创建默认账号记录
+                    accounts_created = HrPersonAccount.create_default_accounts(person)
+                    self.stdout.write(f'  创建账号记录: {len(accounts_created)} 个')
                 else:
                     self.stdout.write(f'更新人员: {person.employee_number} - {person.full_name}')
 

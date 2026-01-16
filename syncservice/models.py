@@ -1,6 +1,76 @@
 from django.db import models
 
 
+class HrPersonAccount(models.Model):
+    """人员账号模型"""
+    ACCOUNT_TYPE_CHOICES = [
+        ('idaas', 'IDAAS账号'),
+        ('welink', 'Welink账号'),
+        ('email', '邮箱账号'),
+    ]
+
+    # 关联人员
+    person = models.ForeignKey('HrPerson', on_delete=models.CASCADE, related_name='accounts', verbose_name='人员')
+
+    # 账号类型
+    account_type = models.CharField(
+        max_length=20,
+        choices=ACCOUNT_TYPE_CHOICES,
+        verbose_name='账号类型'
+    )
+
+    # 账号标识
+    account_identifier = models.CharField(max_length=200, blank=True, null=True, verbose_name='账号标识')
+
+    # 创建状态
+    is_created = models.BooleanField(default=True, verbose_name='是否已创建')
+
+    # 账号创建时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '人员账号'
+        verbose_name_plural = '人员账号'
+        unique_together = ['person', 'account_type']  # 确保每人每种账号类型只有一条记录
+        ordering = ['person', 'account_type']
+        indexes = [
+            models.Index(fields=['person', 'account_type']),
+            models.Index(fields=['is_created']),
+        ]
+
+    def __str__(self):
+        return f"{self.person.employee_number} - {self.get_account_type_display()}"
+
+    @staticmethod
+    def create_default_accounts(person):
+        """为人员创建默认的三种账号记录"""
+        account_types = ['idaas', 'welink', 'email']
+        accounts_created = []
+
+        for account_type in account_types:
+            # 设置账号标识
+            identifier = None
+            if account_type == 'email' and person.email_address:
+                identifier = person.email_address
+            elif account_type in ['idaas', 'welink'] and person.employee_account:
+                identifier = person.employee_account
+
+            account, created = HrPersonAccount.objects.get_or_create(
+                person=person,
+                account_type=account_type,
+                defaults={
+                    'account_identifier': identifier,
+                    'is_created': True  # 默认已创建
+                }
+            )
+
+            if created:
+                accounts_created.append(account)
+
+        return accounts_created
+
+
 class HrPerson(models.Model):
     """人员信息模型"""
     # 基本标识

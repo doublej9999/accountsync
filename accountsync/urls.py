@@ -19,10 +19,11 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework import routers
 
-from syncservice.views import HrPersonViewSet, SyncConfigViewSet
+from syncservice.views import HrPersonViewSet, HrPersonAccountViewSet, SyncConfigViewSet
 
 router = routers.DefaultRouter()
 router.register(r"hr-persons", HrPersonViewSet)
+router.register(r"hr-person-accounts", HrPersonAccountViewSet)
 router.register(r"sync-configs", SyncConfigViewSet)
 
 

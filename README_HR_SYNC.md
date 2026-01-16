@@ -8,7 +8,9 @@
 - ✅ 支持增量同步（根据creationDate）
 - ✅ 分页获取所有数据
 - ✅ 人员数据去重（根据personId）
-- ✅ REST API接口查询同步状态
+- ✅ **人员账号状态跟踪**：三种账号类型（IDAAS、Welink、邮箱）
+- ✅ **自动账号创建**：新人员默认创建三种账号记录
+- ✅ REST API接口查询同步状态和账号统计
 - ✅ 手动触发同步功能
 - ✅ 完整的日志记录
 
@@ -175,7 +177,102 @@ python manage.py sync_hr_persons --help
 
 ## 部署注意事项
 
-### 生产环境配置
+## 人员账号管理系统
+
+系统为每个人员维护三种账号类型的创建状态记录：
+
+### 账号类型
+
+1. **IDAAS账号**：企业身份认证账号
+2. **Welink账号**：华为Welink协作平台账号
+3. **邮箱账号**：企业邮箱账号
+
+### 账号创建规则
+
+- **新人员同步**：自动创建三种账号记录，默认状态为"已创建"
+- **账号标识映射**：
+  - IDAAS账号：关联 `employee_account` 字段
+  - Welink账号：关联 `employee_account` 字段
+  - 邮箱账号：关联 `email_address` 字段
+
+### API接口
+
+#### 1. 查看人员账号状态
+
+```
+GET /hr-persons/{id}/accounts/
+```
+
+#### 2. 查看账号统计
+
+```
+GET /hr-persons/account_stats/
+```
+
+响应示例：
+```json
+{
+  "total_persons": 100,
+  "total_accounts": 300,
+  "created_accounts": 280,
+  "pending_accounts": 20,
+  "overall_completion_rate": "93.3%",
+  "stats_by_type": {
+    "idaas": {
+      "total": 100,
+      "created": 95,
+      "pending": 5,
+      "completion_rate": "95.0%"
+    }
+  }
+}
+```
+
+#### 3. 更新账号状态
+
+```
+PATCH /hr-person-accounts/{id}/
+```
+
+### 管理命令
+
+#### 补全现有人员账号
+
+```bash
+# 预览模式
+python manage.py create_missing_accounts --dry-run
+
+# 实际执行
+python manage.py create_missing_accounts
+```
+
+### 数据模型
+
+#### HrPersonAccount 字段
+
+- `person`: 关联的人员
+- `account_type`: 账号类型（idaas/welink/email）
+- `account_identifier`: 账号标识（如邮箱地址、账号ID）
+- `is_created`: 是否已创建（True/False）
+- `created_at`: 记录创建时间
+- `updated_at`: 记录更新时间
+
+### 管理界面
+
+在Django Admin中可以：
+- 查看所有账号记录
+- 按账号类型和创建状态过滤
+- 批量更新账号创建状态
+- 查看账号创建统计
+
+### 账号系统最佳实践
+
+1. **状态更新**：根据实际账号创建情况及时更新 `is_created` 状态
+2. **标识维护**：保持账号标识与人员信息同步更新
+3. **统计监控**：定期查看账号统计，关注未创建的账号
+4. **批量操作**：使用管理界面批量更新账号状态
+
+## 生产环境配置
 
 1. 设置正确的环境变量
 2. 确保网络能访问HIEDS API

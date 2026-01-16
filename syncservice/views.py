@@ -9,8 +9,11 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from syncservice.models import HrPerson, SyncConfig
-from syncservice.serializer import HrPersonSerializer, SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer
+from syncservice.models import HrPerson, SyncConfig, HrPersonAccount
+from syncservice.serializer import (
+    HrPersonSerializer, HrPersonDetailSerializer, HrPersonAccountSerializer,
+    SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer
+)
 
 
 class HrPersonFilter(django_filters.FilterSet):
@@ -59,6 +62,52 @@ class HrPersonViewSet(ModelViewSet):
         serializer = SyncStatusSerializer(data)
         return Response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        """重写详情视图，使用详细序列化器"""
+        instance = self.get_object()
+        serializer = HrPersonDetailSerializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def accounts(self, request, pk=None):
+        """获取人员的账号信息"""
+        person = self.get_object()
+        accounts = person.accounts.all()
+        serializer = HrPersonAccountSerializer(accounts, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def account_stats(self, request):
+        """获取账号创建统计"""
+        total_persons = HrPerson.objects.count()
+        total_accounts = HrPersonAccount.objects.count()
+        created_accounts = HrPersonAccount.objects.filter(is_created=True).count()
+
+        # 按账号类型统计
+        stats_by_type = {}
+        for account_type, display_name in HrPersonAccount.ACCOUNT_TYPE_CHOICES:
+            type_accounts = HrPersonAccount.objects.filter(account_type=account_type)
+            type_created = type_accounts.filter(is_created=True).count()
+            type_total = type_accounts.count()
+
+            stats_by_type[account_type] = {
+                'total': type_total,
+                'created': type_created,
+                'pending': type_total - type_created,
+                'completion_rate': f"{(type_created/type_total*100):.1f}%" if type_total > 0 else "0%"
+            }
+
+        data = {
+            'total_persons': total_persons,
+            'total_accounts': total_accounts,
+            'created_accounts': created_accounts,
+            'pending_accounts': total_accounts - created_accounts,
+            'overall_completion_rate': f"{(created_accounts/total_accounts*100):.1f}%" if total_accounts > 0 else "0%",
+            'stats_by_type': stats_by_type
+        }
+
+        return Response(data)
+
     @action(detail=False, methods=['post'])
     def manual_sync(self, request):
         """手动触发同步"""
@@ -78,6 +127,27 @@ class HrPersonViewSet(ModelViewSet):
             return Response({'message': '同步完成'})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HrPersonAccountFilter(django_filters.FilterSet):
+    account_type = django_filters.CharFilter(lookup_expr="exact")
+    is_created = django_filters.BooleanFilter()
+    person__employee_number = django_filters.CharFilter(lookup_expr="icontains")
+
+    class Meta:
+        model = HrPersonAccount
+        fields = ["account_type", "is_created"]
+
+
+class HrPersonAccountViewSet(ModelViewSet):
+    queryset = HrPersonAccount.objects.all()
+    serializer_class = HrPersonAccountSerializer
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = HrPersonAccountFilter
+    search_fields = ["person__employee_number", "person__full_name", "account_identifier"]
+    ordering_fields = ["created_at", "updated_at", "account_type"]
+    ordering = ["-updated_at"]
 
 
 class SyncConfigViewSet(ModelViewSet):
