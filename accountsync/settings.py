@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-h@+t!tm#sq$g9)f(1j7w-zwayg46f5s@%_hx7=wy7_fvjvy46t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 
 # Application definition
@@ -85,14 +85,15 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'My Project API',
-    'DESCRIPTION': '项目文档描述',
+    'TITLE': 'AccountSync',
+    'DESCRIPTION': '账号自动化',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,  # 如果只想在 /api/schema/ 看到 JSON，不想在 UI 侧边栏看到一堆 JSON，可以设为 False
 }
 
 # 自定义定时任务配置
 HR_SYNC_INTERVAL_MINUTES = 10  # 每10分钟同步一次
+ACCOUNT_CREATION_INTERVAL_MINUTES = 5  # 每5分钟处理账号创建任务
 
 # 日志配置
 LOGGING = {
@@ -127,6 +128,16 @@ LOGGING = {
     },
     'loggers': {
         'syncservice.cron.scheduler': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'syncservice.services': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'syncservice.management.commands.process_account_creation_tasks': {
             'handlers': ['file'],
             'level': 'INFO',
             'propagate': False,

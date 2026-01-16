@@ -19,12 +19,17 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from rest_framework import routers
 
-from syncservice.views import HrPersonViewSet, HrPersonAccountViewSet, SyncConfigViewSet
+from syncservice.views import (
+    HrPersonViewSet, HrPersonAccountViewSet, SyncConfigViewSet,
+    DepartmentMappingViewSet, AccountCreationViewSet
+)
 
 router = routers.DefaultRouter()
 router.register(r"hr-persons", HrPersonViewSet)
 router.register(r"hr-person-accounts", HrPersonAccountViewSet)
 router.register(r"sync-configs", SyncConfigViewSet)
+router.register(r"department-mappings", DepartmentMappingViewSet)
+router.register(r"account-creation", AccountCreationViewSet)
 
 
 urlpatterns = [

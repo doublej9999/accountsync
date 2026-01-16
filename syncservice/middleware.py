@@ -1,6 +1,6 @@
 import os
 from django.utils.deprecation import MiddlewareMixin
-from syncservice.cron.scheduler import run_hr_sync_if_needed
+from syncservice.cron.scheduler import run_hr_sync_if_needed, run_account_creation_if_needed
 
 
 class HrSyncMiddleware(MiddlewareMixin):
@@ -10,6 +10,7 @@ class HrSyncMiddleware(MiddlewareMixin):
         super().__init__(get_response)
         # 初始化时读取同步开关状态
         self.sync_enabled = os.getenv('HR_SYNC_ENABLED', 'true').lower() in ('true', '1', 'yes', 'on')
+        self.account_creation_enabled = os.getenv('ACCOUNT_CREATION_ENABLED', 'true').lower() in ('true', '1', 'yes', 'on')
 
     def process_request(self, request):
         # 检查同步是否启用
@@ -20,6 +21,9 @@ class HrSyncMiddleware(MiddlewareMixin):
         if not request.path.startswith('/static/') and not request.path.startswith('/media/'):
             try:
                 run_hr_sync_if_needed()
+                # 同时检查账号创建任务
+                if self.account_creation_enabled:
+                    run_account_creation_if_needed()
             except Exception as e:
                 # 不让同步错误影响正常请求
                 import logging

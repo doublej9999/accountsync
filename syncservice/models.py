@@ -172,3 +172,158 @@ class SyncConfig(models.Model):
                 config.description = description
             config.save()
         return config
+
+
+class DepartmentMapping(models.Model):
+    """部门映射表"""
+    idata_departmentcode = models.CharField(max_length=50, unique=True, verbose_name='iData部门代码')
+    idaas_departmentcode = models.CharField(max_length=50, verbose_name='IDAAS部门代码')
+    ou = models.CharField(max_length=200, verbose_name='OU路径')
+
+    class Meta:
+        verbose_name = '部门映射'
+        verbose_name_plural = '部门映射'
+        ordering = ['idata_departmentcode']
+
+    def __str__(self):
+        return f"{self.idata_departmentcode} -> {self.idaas_departmentcode}"
+
+
+class AccountCreationTask(models.Model):
+    """账号创建任务模型"""
+    TASK_STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('processing', '处理中'),
+        ('completed', '已完成'),
+        ('failed', '失败'),
+    ]
+
+    task_id = models.CharField(max_length=100, unique=True, verbose_name='任务ID')
+    person = models.ForeignKey('HrPerson', on_delete=models.CASCADE, related_name='creation_tasks', verbose_name='人员')
+    account_type = models.CharField(
+        max_length=20,
+        choices=HrPersonAccount.ACCOUNT_TYPE_CHOICES,
+        verbose_name='账号类型'
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=TASK_STATUS_CHOICES,
+        default='pending',
+        verbose_name='任务状态'
+    )
+
+    result_data = models.JSONField(blank=True, null=True, verbose_name='结果数据')
+
+    # 顺序控制
+    depends_on_task = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='dependent_tasks',
+        verbose_name='依赖任务'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    completed_at = models.DateTimeField(blank=True, null=True, verbose_name='完成时间')
+
+    class Meta:
+        verbose_name = '账号创建任务'
+        verbose_name_plural = '账号创建任务'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['person', 'account_type']),
+            models.Index(fields=['task_id']),
+        ]
+        unique_together = ['person', 'account_type', 'depends_on_task']
+
+    def __str__(self):
+        return f"{self.person.employee_number} - {self.get_account_type_display()} - {self.get_status_display()}"
+
+    def can_process(self):
+        """检查任务是否可以处理"""
+        if self.status != 'pending':
+            return False
+
+        # 如果有依赖任务，检查依赖任务是否已完成
+        if self.depends_on_task:
+            return self.depends_on_task.status == 'completed'
+
+        return True
+
+    def mark_processing(self):
+        """标记为处理中"""
+        self.status = 'processing'
+        self.save()
+
+    def mark_completed(self, result_data=None):
+        """标记为完成"""
+        self.status = 'completed'
+        self.result_data = result_data
+        self.completed_at = timezone.now()
+        self.save()
+
+    @property
+    def retry_count(self):
+        """动态计算重试次数（通过日志数量）"""
+        return self.error_logs.count()
+
+    @property
+    def max_retries(self):
+        """从环境变量获取最大重试次数"""
+        import os
+        return int(os.getenv('ACCOUNT_CREATION_MAX_RETRIES', '5'))
+
+    def should_retry(self):
+        """检查是否应该重试"""
+        return self.status == 'failed' and self.retry_count < self.max_retries
+
+    def mark_failed(self, error_message, error_details=None, execution_context=None):
+        """标记为失败并记录错误日志"""
+        import traceback
+        from syncservice.models import AccountCreationLog
+
+        self.status = 'failed'
+        self.save()
+
+        # 创建错误日志记录
+        execution_attempt = self.retry_count + 1  # 当前执行次数
+        AccountCreationLog.objects.create(
+            task=self,
+            execution_attempt=execution_attempt,
+            error_message=error_message,
+            error_details={
+                'error_type': type(error_details).__name__ if error_details else 'Exception',
+                'stack_trace': traceback.format_exc(),
+                'additional_info': error_details
+            } if error_details or traceback.format_exc() != 'NoneType: None\n' else None,
+            execution_context=execution_context
+        )
+
+
+class AccountCreationLog(models.Model):
+    """账号创建任务执行日志 - 记录错误信息"""
+
+    task = models.ForeignKey(AccountCreationTask, on_delete=models.CASCADE, related_name='error_logs', verbose_name='任务')
+    execution_attempt = models.IntegerField(verbose_name='执行尝试次数')  # 从1开始计数
+
+    # 错误信息
+    error_message = models.TextField(verbose_name='错误信息')
+    error_details = models.JSONField(blank=True, null=True, verbose_name='错误详情')  # 存储堆栈跟踪、API响应等
+
+    # 执行上下文（可选，用于存储关键执行数据）
+    execution_context = models.JSONField(blank=True, null=True, verbose_name='执行上下文')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        verbose_name = '账号创建日志'
+        verbose_name_plural = '账号创建日志'
+        ordering = ['task', 'execution_attempt']
+        unique_together = ['task', 'execution_attempt']  # 确保每轮执行只有一个日志
+
+    def __str__(self):
+        return f"{self.task.task_id} - 第{self.execution_attempt}次执行 - {self.error_message[:50]}..."

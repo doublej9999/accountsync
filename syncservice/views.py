@@ -9,10 +9,13 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from syncservice.models import HrPerson, SyncConfig, HrPersonAccount
+from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationLog
 from syncservice.serializer import (
     HrPersonSerializer, HrPersonDetailSerializer, HrPersonAccountSerializer,
-    SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer
+    SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer,
+    DepartmentMappingSerializer, AccountCreationRequestSerializer,
+    AccountCreationTaskSerializer, UserCreationDataSerializer,
+    AccountCreationLogSerializer
 )
 
 
@@ -153,6 +156,263 @@ class HrPersonAccountViewSet(ModelViewSet):
 class SyncConfigViewSet(ModelViewSet):
     queryset = SyncConfig.objects.all()
     serializer_class = SyncConfigSerializer
+
+
+class DepartmentMappingViewSet(ModelViewSet):
+    queryset = DepartmentMapping.objects.all()
+    serializer_class = DepartmentMappingSerializer
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['idata_departmentcode', 'idaas_departmentcode']
+    search_fields = ['idata_departmentcode', 'idaas_departmentcode', 'ou']
+    ordering_fields = ['idata_departmentcode', 'idaas_departmentcode']
+    ordering = ['idata_departmentcode']
+
+
+class AccountCreationViewSet(ModelViewSet):
+    queryset = AccountCreationTask.objects.all()
+    serializer_class = AccountCreationTaskSerializer
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'account_type', 'person__employee_number']
+    search_fields = ['task_id', 'person__employee_number', 'person__full_name']
+    ordering_fields = ['created_at', 'updated_at', 'status']
+    ordering = ['-created_at']
+
+    @action(detail=False, methods=['post'])
+    def create_accounts(self, request):
+        """批量创建账号"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        serializer = AccountCreationRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        origin_system = serializer.validated_data['originSystem']
+        business_key = serializer.validated_data['businessKey']
+        account_type = serializer.validated_data['accountType']
+        employee_type = serializer.validated_data['employeeType']
+        system_list = serializer.validated_data['systemList']
+        user_list = serializer.validated_data['userList']
+
+        # 记录请求日志
+        logger.info(f'接收到账号创建请求: {origin_system} - {business_key} - {system_list}')
+
+        created_tasks = []
+        errors = []
+
+        for user_data in user_list:
+            user_serializer = UserCreationDataSerializer(data=user_data)
+            if not user_serializer.is_valid():
+                errors.append({
+                    'user': user_data,
+                    'errors': user_serializer.errors
+                })
+                continue
+
+            employee_number = user_serializer.validated_data['employeeNumber']
+            employee_name = user_serializer.validated_data['employeeName']
+            department_code = user_serializer.validated_data['departmentCode']
+            phone_number = user_serializer.validated_data['phoneNumber']
+            partner_company = user_serializer.validated_data.get('partnerCompany', '')
+            country = user_serializer.validated_data['country']
+
+            try:
+                # 获取或创建人员记录
+                # 注意：person_id 是主键，需要从业务系统中获取或生成
+                # 这里暂时使用 employee_number 的数值部分作为 person_id
+                # todo 这里的person_id后续需要保持与同步的一致
+                try:
+                    # 尝试从 employee_number 中提取数字部分
+                    person_id = int(''.join(filter(str.isdigit, employee_number)))
+                except ValueError:
+                    # 如果无法提取，使用 hash 的后8位作为较小的整数
+                    import hashlib
+                    person_id = int(hashlib.md5(employee_number.encode()).hexdigest()[:7], 16)
+
+                person, person_created = HrPerson.objects.get_or_create(
+                    employee_number=employee_number,
+                    defaults={
+                        'person_id': person_id,
+                        'full_name': employee_name,
+                        'telephone_number1': phone_number,
+                        'person_type': account_type,
+                        'employee_status': employee_type,
+                        'tenant_id': business_key,
+                        'created_by': 'account_creation_api',
+                        'last_updated_by': 'account_creation_api',
+                        'creation_date': timezone.now(),
+                        'last_update_date': timezone.now(),
+                        'person_dept': [{
+                            'department_code': department_code,
+                            'partner_company': partner_company,
+                            'country': country
+                        }]
+                    }
+                )
+
+                if not person_created:
+                    # 更新现有人员信息
+                    person.full_name = employee_name
+                    person.telephone_number1 = phone_number
+                    person.person_type = account_type
+                    person.employee_status = employee_type
+                    person.last_update_date = timezone.now()
+                    person.last_updated_by = 'account_creation_api'
+                    if not person.person_dept:
+                        person.person_dept = [{
+                            'department_code': department_code,
+                            'partner_company': partner_company,
+                            'country': country
+                        }]
+                    person.save()
+
+                # 创建账号创建任务
+                tasks_for_user = self._create_account_tasks_for_user(
+                    person, system_list, origin_system, business_key
+                )
+                created_tasks.extend(tasks_for_user)
+
+            except Exception as e:
+                errors.append({
+                    'user': user_data,
+                    'error': str(e)
+                })
+
+        response_data = {
+            'success': len(errors) == 0,
+            'created_tasks': len(created_tasks),
+            'errors': errors,
+            'tasks': AccountCreationTaskSerializer(created_tasks, many=True).data if created_tasks else []
+        }
+
+        return Response(response_data, status=status.HTTP_201_CREATED if len(errors) == 0 else status.HTTP_207_MULTI_STATUS)
+
+    def _create_account_tasks_for_user(self, person, system_list, origin_system, business_key):
+        """为用户创建账号任务"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        created_tasks = []
+
+        # 定义账号创建顺序
+        account_order = {
+            'idaas': 1,
+            'welink': 2,
+            'email': 3
+        }
+
+        # 按顺序排序系统列表
+        sorted_systems = sorted(system_list, key=lambda x: account_order.get(x, 999))
+
+        previous_task = None
+
+        for account_type in sorted_systems:
+            # 检查是否已存在进行中的任务
+            existing_task = AccountCreationTask.objects.filter(
+                person=person,
+                account_type=account_type,
+                status__in=['pending', 'processing']
+            ).first()
+
+            if existing_task:
+                logger.info(f'用户 {person.employee_number} 的 {account_type} 账号任务已存在，跳过')
+                previous_task = existing_task
+                continue
+
+            # 创建新任务
+            task = AccountCreationTask.objects.create(
+                task_id=f"{business_key}_{person.employee_number}_{account_type}_{timezone.now().timestamp()}",
+                person=person,
+                account_type=account_type,
+                depends_on_task=previous_task
+            )
+
+            created_tasks.append(task)
+            previous_task = task
+
+            logger.info(f'创建任务: {task.task_id} - {person.employee_number} - {account_type}')
+
+        return created_tasks
+
+    @action(detail=False, methods=['get'])
+    def task_stats(self, request):
+        """获取任务统计信息"""
+        total_tasks = AccountCreationTask.objects.count()
+        pending_tasks = AccountCreationTask.objects.filter(status='pending').count()
+        processing_tasks = AccountCreationTask.objects.filter(status='processing').count()
+        completed_tasks = AccountCreationTask.objects.filter(status='completed').count()
+        failed_tasks = AccountCreationTask.objects.filter(status='failed').count()
+
+        # 按账号类型统计
+        stats_by_type = {}
+        for account_type, display_name in HrPersonAccount.ACCOUNT_TYPE_CHOICES:
+            type_tasks = AccountCreationTask.objects.filter(account_type=account_type)
+            type_completed = type_tasks.filter(status='completed').count()
+            type_total = type_tasks.count()
+
+            stats_by_type[account_type] = {
+                'total': type_total,
+                'completed': type_completed,
+                'pending': type_tasks.filter(status='pending').count(),
+                'processing': type_tasks.filter(status='processing').count(),
+                'failed': type_tasks.filter(status='failed').count(),
+                'completion_rate': f"{(type_completed/type_total*100):.1f}%" if type_total > 0 else "0%"
+            }
+
+        data = {
+            'total_tasks': total_tasks,
+            'pending_tasks': pending_tasks,
+            'processing_tasks': processing_tasks,
+            'completed_tasks': completed_tasks,
+            'failed_tasks': failed_tasks,
+            'overall_completion_rate': f"{(completed_tasks/total_tasks*100):.1f}%" if total_tasks > 0 else "0%",
+            'stats_by_type': stats_by_type
+        }
+
+        return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def retry_task(self, request, pk=None):
+        """手动重试任务"""
+        task = self.get_object()
+
+        if task.status not in ['failed']:
+            return Response({
+                'success': False,
+                'error': '只有失败的任务才能重试'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if task.retry_count >= task.max_retries:
+            return Response({
+                'success': False,
+                'error': '任务已达到最大重试次数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 重置任务状态
+        task.status = 'pending'
+        task.save()
+
+        return Response({
+            'success': True,
+            'message': f'任务 {task.task_id} 已重置为待处理状态'
+        })
+
+    @action(detail=True, methods=['get'])
+    def logs(self, request, pk=None):
+        """查看任务的错误日志"""
+        task = self.get_object()
+        logs = task.error_logs.all().order_by('execution_attempt')
+
+        # 支持分页
+        page = self.paginate_queryset(logs)
+        serializer = AccountCreationLogSerializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
 
 
 
