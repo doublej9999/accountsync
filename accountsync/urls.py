@@ -15,11 +15,27 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from rest_framework import routers
 
-from syncservice.api import api
+from syncservice.views import HrPersonViewSet, SyncConfigViewSet
+
+router = routers.DefaultRouter()
+router.register(r"hr-persons", HrPersonViewSet)
+router.register(r"sync-configs", SyncConfigViewSet)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api/", api.urls),
+    path("", include(router.urls)),
+    # --- DRF Spectacular 文档路由 ---
+    # 1. Schema 下载接口 (JSON/YAML)
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+
+    # 2. Swagger UI (交互式文档)
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
+    # 3. ReDoc (更美观的文档)
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

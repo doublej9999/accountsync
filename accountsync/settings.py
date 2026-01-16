@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'django_filters',
+    'drf_spectacular',
+    'safedelete',
     'syncservice'
 ]
 
@@ -50,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'syncservice.middleware.HrSyncMiddleware',
 ]
 
 ROOT_URLCONF = 'accountsync.urls'
@@ -70,6 +75,66 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'accountsync.wsgi.application'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'My Project API',
+    'DESCRIPTION': '项目文档描述',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # 如果只想在 /api/schema/ 看到 JSON，不想在 UI 侧边栏看到一堆 JSON，可以设为 False
+}
+
+# 自定义定时任务配置
+HR_SYNC_INTERVAL_MINUTES = 10  # 每10分钟同步一次
+
+# 日志配置
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'logs/hr_sync.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'syncservice.cron.scheduler': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 
 
 # Database

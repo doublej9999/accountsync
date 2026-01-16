@@ -10,3 +10,6 @@
 /web/pnpm-lock.yaml
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
+/syncservice/migrations/
+/logs/
+/AGENTS.md
