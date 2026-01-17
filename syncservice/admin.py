@@ -167,8 +167,8 @@ class AccountCreationTaskAdmin(ModelAdmin):
     get_retry_count_display.short_description = '重试次数'
     get_retry_count_display.admin_order_field = 'retry_count_annotated'
 
-    def retry_selected_tasks(self, request, queryset):
-        """重试选中的任务并立即执行账号创建"""
+    def retry_failed_tasks(self, request, queryset):
+        """重试失败的任务并立即执行账号创建"""
         service = AccountCreationService()
         success_count = 0
         failed_count = 0
@@ -270,8 +270,24 @@ class AccountCreationTaskAdmin(ModelAdmin):
                 messages.WARNING
             )
 
-    retry_selected_tasks.short_description = '重试选中任务'
-    actions = [retry_selected_tasks]
+    retry_failed_tasks.short_description = '重试'
+
+    # 批量状态修改操作
+    def bulk_set_pending(self, request, queryset):
+        """批量将选中的任务设为待处理状态"""
+        updated = queryset.update(status='pending')
+        self.message_user(
+            request,
+            f"成功将 {updated} 个任务设为待处理状态",
+            messages.SUCCESS
+        )
+
+
+    # 设置操作描述和权限
+    bulk_set_pending.short_description = '设置为待处理'
+    bulk_set_pending.allowed_permissions = ('change',)
+
+    actions = [retry_failed_tasks, bulk_set_pending]
 
 
 @admin.register(AccountCreationLog)
