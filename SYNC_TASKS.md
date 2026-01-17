@@ -183,7 +183,6 @@ Content-Type: application/json
 - `hr_sync_enabled`: HR同步功能开关
 - `task_auto_creation_enabled`: 任务自动创建开关
 - `task_processing_enabled`: 任务处理开关
-- `account_creation_enabled`: 账号创建功能总开关
 
 ### 执行参数
 - `hr_sync_interval_minutes`: HR同步间隔（默认10分钟）

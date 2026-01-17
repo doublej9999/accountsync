@@ -15,7 +15,6 @@ class Command(BaseCommand):
                 ('hr_sync_enabled', 'true', '是否启用HR数据同步'),
                 ('task_auto_creation_enabled', 'true', '是否启用账号任务自动创建'),
                 ('task_processing_enabled', 'true', '是否启用账号任务处理'),
-                ('account_creation_enabled', 'true', '是否启用账号创建功能'),
             ],
 
             # HR同步配置
