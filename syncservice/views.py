@@ -2,20 +2,23 @@ from datetime import timedelta
 
 import django_filters
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.throttling import UserRateThrottle
+from rest_framework.viewsets import ModelViewSet, ViewSet
 
 from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask
 from syncservice.serializer import (
     HrPersonSerializer, HrPersonDetailSerializer, HrPersonAccountSerializer,
-    SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer,
+    SyncConfigSerializer, SyncStatusSerializer,
     DepartmentMappingSerializer, AccountCreationRequestSerializer,
     AccountCreationTaskSerializer, UserCreationDataSerializer,
-    AccountCreationLogSerializer
+    AccountCreationLogSerializer, TaskExecutionSerializer
 )
 
 
@@ -110,27 +113,6 @@ class HrPersonViewSet(ModelViewSet):
         }
 
         return Response(data)
-
-    @action(detail=False, methods=['post'])
-    def manual_sync(self, request):
-        """手动触发同步"""
-        from syncservice.management.commands.task.sync_hr_persons import Command
-
-        serializer = ManualSyncSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        force_full_sync = serializer.validated_data.get('force_full_sync', False)
-        page_size = serializer.validated_data.get('page_size', 20)
-
-        # 执行同步命令
-        try:
-            command = Command()
-            command.handle(force_full_sync=force_full_sync, page_size=page_size)
-            return Response({'message': '同步完成'})
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class HrPersonAccountFilter(django_filters.FilterSet):
     account_type = django_filters.CharFilter(lookup_expr="exact")
@@ -389,4 +371,113 @@ class AccountCreationViewSet(ModelViewSet):
         return self.get_paginated_response(serializer.data)
 
 
+class TaskManagementViewSet(ViewSet):
+    """任务管理ViewSet - 提供手动触发定时任务的API接口"""
 
+    permission_classes = [IsAdminUser]
+    throttle_classes = [UserRateThrottle]
+
+    @action(detail=False, methods=['post'])
+    def sync_hr_persons(self, request):
+        """手动触发HR人员同步"""
+        serializer = TaskExecutionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        mode = serializer.validated_data['mode']
+        force_full_sync = serializer.validated_data.get('force_full_sync', False)
+
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+
+            # 捕获命令输出
+            output = StringIO()
+            if mode == 'dry_run':
+                # 预览模式：设置小的page_size以快速完成
+                call_command('sync_hr_persons', force_full_sync=force_full_sync, page_size=1, stdout=output)
+            else:
+                # 执行模式
+                call_command('sync_hr_persons', force_full_sync=force_full_sync, stdout=output)
+
+            result_message = output.getvalue()
+
+            return Response({
+                'status': 'success',
+                'mode': mode,
+                'message': result_message.strip() or f'{"预览" if mode == "dry_run" else "执行"}完成'
+            })
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'mode': mode,
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def create_account_tasks(self, request):
+        """手动触发账号任务创建"""
+        serializer = TaskExecutionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        mode = serializer.validated_data['mode']
+        employee_status = serializer.validated_data.get('employee_status')
+
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+
+            output = StringIO()
+            if mode == 'dry_run':
+                call_command('create_account_tasks', dry_run=True, employee_status=employee_status, stdout=output)
+            else:
+                call_command('create_account_tasks', dry_run=False, employee_status=employee_status, stdout=output)
+
+            result_message = output.getvalue()
+
+            return Response({
+                'status': 'success',
+                'mode': mode,
+                'message': result_message.strip() or f'{"预览" if mode == "dry_run" else "执行"}完成'
+            })
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'mode': mode,
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def process_account_tasks(self, request):
+        """手动触发账号任务处理"""
+        serializer = TaskExecutionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        mode = serializer.validated_data['mode']
+        max_tasks = serializer.validated_data.get('max_tasks', 50)
+
+        try:
+            from django.core.management import call_command
+            from io import StringIO
+
+            output = StringIO()
+            if mode == 'dry_run':
+                call_command('process_account_creation_tasks', dry_run=True, max_tasks=max_tasks, stdout=output)
+            else:
+                call_command('process_account_creation_tasks', dry_run=False, max_tasks=max_tasks, stdout=output)
+
+            result_message = output.getvalue()
+
+            return Response({
+                'status': 'success',
+                'mode': mode,
+                'message': result_message.strip() or f'{"预览" if mode == "dry_run" else "执行"}完成'
+            })
+
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'mode': mode,
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

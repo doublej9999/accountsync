@@ -237,12 +237,12 @@ UNFOLD = {
     },
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": False,
+        "show_all_applications": True,
         "navigation": [
             {
                 "title": "人员管理",
                 "separator": True,
-                "collapsible": True,
+                "collapsible": False,
                 "items": [
                     {
                         "title": "人员信息",
@@ -264,7 +264,7 @@ UNFOLD = {
             {
                 "title": "系统配置",
                 "separator": True,
-                "collapsible": True,
+                "collapsible": False,
                 "items": [
                     {
                         "title": "系统配置",

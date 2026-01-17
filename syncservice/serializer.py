@@ -55,13 +55,6 @@ class SyncStatusSerializer(serializers.Serializer):
     last_sync_status = serializers.CharField(read_only=True)
     next_sync_time = serializers.DateTimeField(read_only=True)
 
-
-class ManualSyncSerializer(serializers.Serializer):
-    """手动同步序列化器"""
-    force_full_sync = serializers.BooleanField(default=False, required=False)
-    page_size = serializers.IntegerField(default=20, min_value=1, max_value=100, required=False)
-
-
 class DepartmentMappingSerializer(serializers.ModelSerializer):
     """部门映射序列化器"""
     class Meta:
@@ -148,3 +141,21 @@ class AccountCreationLogSerializer(serializers.ModelSerializer):
             'person': obj.task.person.employee_number,
             'account_type': obj.task.account_type
         }
+
+
+class TaskExecutionSerializer(serializers.Serializer):
+    """任务执行序列化器"""
+    mode = serializers.ChoiceField(choices=['dry_run', 'run'], default='dry_run')
+
+    # HR同步参数
+    force_full_sync = serializers.BooleanField(default=False, required=False)
+
+    # 任务创建参数
+    employee_status = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=True
+    )
+
+    # 任务处理参数
+    max_tasks = serializers.IntegerField(default=50, min_value=1, required=False)

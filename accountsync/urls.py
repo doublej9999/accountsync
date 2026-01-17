@@ -21,7 +21,7 @@ from rest_framework import routers
 
 from syncservice.views import (
     HrPersonViewSet, HrPersonAccountViewSet, SyncConfigViewSet,
-    DepartmentMappingViewSet, AccountCreationViewSet
+    DepartmentMappingViewSet, AccountCreationViewSet, TaskManagementViewSet
 )
 
 router = routers.DefaultRouter()
@@ -30,6 +30,7 @@ router.register(r"hr-person-accounts", HrPersonAccountViewSet)
 router.register(r"sync-configs", SyncConfigViewSet)
 router.register(r"department-mappings", DepartmentMappingViewSet)
 router.register(r"account-creation", AccountCreationViewSet)
+router.register(r"task-management", TaskManagementViewSet, basename='task-management')
 
 
 urlpatterns = [

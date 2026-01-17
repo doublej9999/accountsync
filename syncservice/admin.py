@@ -6,6 +6,7 @@ from unfold.contrib.filters.admin import (
     RangeNumericFilter,
     SingleNumericFilter
 )
+from unfold.paginator import InfinitePaginator
 
 from syncservice.models import (
     HrPerson, HrPersonAccount, SyncConfig, DepartmentMapping,
@@ -17,6 +18,7 @@ from syncservice.services import AccountCreationService
 # Register your models here.
 @admin.register(HrPerson)
 class HrPersonAdmin(ModelAdmin):
+
     list_display = ['employee_number', 'full_name', 'employee_status', 'person_type', 'creation_date']
     list_filter = [
         'employee_status',
@@ -26,7 +28,8 @@ class HrPersonAdmin(ModelAdmin):
     ]
     search_fields = ['employee_number', 'full_name', 'english_name', 'email_address']
     readonly_fields = ['person_id', 'creation_date', 'last_update_date']
-    list_per_page = 50  # 人员数据分页
+    list_per_page = 5  # 人员数据分页
+    paginator = InfinitePaginator
 
     # Unfold specific configurations
     compressed_fields = True
@@ -319,7 +322,6 @@ class AccountCreationTaskAdmin(ModelAdmin):
     # 设置操作描述和权限
     bulk_set_pending.short_description = '设置为待处理'
     bulk_set_pending.allowed_permissions = ('change',)
-
     actions = [retry_failed_tasks, bulk_set_pending]
 
 
