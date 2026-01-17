@@ -44,7 +44,10 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',
     'safedelete',
-    'syncservice'
+    'syncservice',
+    # Celery相关应用
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +58,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'syncservice.middleware.HrSyncMiddleware',
 ]
 
 ROOT_URLCONF = 'accountsync.urls'
@@ -288,3 +290,42 @@ def environment_callback(request):
     环境标识回调函数
     """
     return ["开发环境", "warning"]  # warning 表示开发/测试环境
+
+
+# Celery配置
+# 使用Redis作为消息代理
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+# Celery任务序列化
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+
+# 时区设置
+CELERY_TIMEZONE = TIME_ZONE
+
+# 任务路由
+CELERY_TASK_ROUTES = {
+    'syncservice.tasks.sync_hr_persons_task': {'queue': 'hr_sync'},
+    'syncservice.tasks.create_account_tasks_task': {'queue': 'account_tasks'},
+    'syncservice.tasks.process_account_creation_tasks_task': {'queue': 'account_processing'},
+}
+
+# Beat调度器配置
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'sync-hr-persons': {
+        'task': 'syncservice.tasks.sync_hr_persons_task',
+        'schedule': crontab(minute='*/10'),  # 每10分钟执行一次
+    },
+    'create-account-tasks': {
+        'task': 'syncservice.tasks.create_account_tasks_task',
+        'schedule': crontab(minute='*/10'),  # 每10分钟执行一次
+    },
+    'process-account-creation-tasks': {
+        'task': 'syncservice.tasks.process_account_creation_tasks_task',
+        'schedule': crontab(minute='*/5'),  # 每5分钟执行一次
+    },
+}

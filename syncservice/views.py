@@ -323,7 +323,6 @@ class AccountCreationViewSet(ModelViewSet):
 class TaskManagementViewSet(ViewSet):
     """任务管理ViewSet - 提供手动触发定时任务的API接口"""
 
-    permission_classes = [IsAdminUser]
     throttle_classes = [UserRateThrottle]
 
     @action(detail=False, methods=['post'])
