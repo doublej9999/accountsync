@@ -51,12 +51,6 @@ AccountSync 项目新增的账号创建功能，支持异步批量创建 IDAAS�
 
 返回各账号类型的任务统计信息。
 
-### 手动重试任务
-
-**端点**: `POST /account-creation/{id}/retry_task/`
-
-重置失败任务状态为待处理。
-
 ### 查看任务日志
 
 **端点**: `GET /account-creation/{id}/logs/`

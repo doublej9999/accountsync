@@ -376,32 +376,6 @@ class AccountCreationViewSet(ModelViewSet):
 
         return Response(data)
 
-    @action(detail=True, methods=['post'])
-    def retry_task(self, request, pk=None):
-        """手动重试任务"""
-        task = self.get_object()
-
-        if task.status not in ['failed']:
-            return Response({
-                'success': False,
-                'error': '只有失败的任务才能重试'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        if task.retry_count >= task.max_retries:
-            return Response({
-                'success': False,
-                'error': '任务已达到最大重试次数'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 重置任务状态
-        task.status = 'pending'
-        task.save()
-
-        return Response({
-            'success': True,
-            'message': f'任务 {task.task_id} 已重置为待处理状态'
-        })
-
     @action(detail=True, methods=['get'])
     def logs(self, request, pk=None):
         """查看任务的错误日志"""
