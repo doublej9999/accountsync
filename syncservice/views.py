@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import django_filters
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
@@ -294,11 +293,10 @@ class AccountCreationViewSet(ModelViewSet):
         previous_task = None
 
         for account_type in sorted_systems:
-            # 检查是否已存在进行中的任务
+            # 检查是否已存在任务
             existing_task = AccountCreationTask.objects.filter(
                 person=person,
                 account_type=account_type,
-                status__in=['pending', 'processing']
             ).first()
 
             if existing_task:
@@ -320,55 +318,6 @@ class AccountCreationViewSet(ModelViewSet):
             logger.info(f'创建任务: {task.task_id} - {person.employee_number} - {account_type}')
 
         return created_tasks
-
-    @action(detail=False, methods=['get'])
-    def task_stats(self, request):
-        """获取任务统计信息"""
-        total_tasks = AccountCreationTask.objects.count()
-        pending_tasks = AccountCreationTask.objects.filter(status='pending').count()
-        processing_tasks = AccountCreationTask.objects.filter(status='processing').count()
-        completed_tasks = AccountCreationTask.objects.filter(status='completed').count()
-        failed_tasks = AccountCreationTask.objects.filter(status='failed').count()
-
-        # 按账号类型统计
-        stats_by_type = {}
-        for account_type, display_name in HrPersonAccount.ACCOUNT_TYPE_CHOICES:
-            type_tasks = AccountCreationTask.objects.filter(account_type=account_type)
-            type_completed = type_tasks.filter(status='completed').count()
-            type_total = type_tasks.count()
-
-            stats_by_type[account_type] = {
-                'total': type_total,
-                'completed': type_completed,
-                'pending': type_tasks.filter(status='pending').count(),
-                'processing': type_tasks.filter(status='processing').count(),
-                'failed': type_tasks.filter(status='failed').count(),
-                'completion_rate': f"{(type_completed/type_total*100):.1f}%" if type_total > 0 else "0%"
-            }
-
-        data = {
-            'total_tasks': total_tasks,
-            'pending_tasks': pending_tasks,
-            'processing_tasks': processing_tasks,
-            'completed_tasks': completed_tasks,
-            'failed_tasks': failed_tasks,
-            'overall_completion_rate': f"{(completed_tasks/total_tasks*100):.1f}%" if total_tasks > 0 else "0%",
-            'stats_by_type': stats_by_type
-        }
-
-        return Response(data)
-
-    @action(detail=True, methods=['get'])
-    def logs(self, request, pk=None):
-        """查看任务的错误日志"""
-        task = self.get_object()
-        logs = task.error_logs.all().order_by('execution_attempt')
-
-        # 支持分页
-        page = self.paginate_queryset(logs)
-        serializer = AccountCreationLogSerializer(page, many=True)
-
-        return self.get_paginated_response(serializer.data)
 
 
 class TaskManagementViewSet(ViewSet):

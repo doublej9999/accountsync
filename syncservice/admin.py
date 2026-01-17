@@ -1,12 +1,11 @@
 from django.contrib import admin, messages
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.filters.admin import (
     RangeDateFilter,
     RangeDateTimeFilter,
     RangeNumericFilter,
-    SingleNumericFilter
 )
-from unfold.paginator import InfinitePaginator
 
 from syncservice.models import (
     HrPerson, HrPersonAccount, SyncConfig, DepartmentMapping,
@@ -28,8 +27,7 @@ class HrPersonAdmin(ModelAdmin):
     ]
     search_fields = ['employee_number', 'full_name', 'english_name', 'email_address']
     readonly_fields = ['person_id', 'creation_date', 'last_update_date']
-    list_per_page = 5  # 人员数据分页
-    paginator = InfinitePaginator
+    list_per_page = 20  # 人员数据分页
 
     # Unfold specific configurations
     compressed_fields = True
@@ -112,7 +110,7 @@ class SyncConfigAdmin(ModelAdmin):
             'system_config': ['hr_sync_enabled', 'task_auto_creation_enabled', 'task_processing_enabled', 'account_creation_enabled'],
             'hr_sync_config': ['hieds_account', 'hieds_secret', 'hieds_project', 'hieds_enterprise', 'hieds_person_project_id', 'hieds_tenant_id', 'hieds_page_size'],
             'task_config': ['account_creation_max_retries', 'valid_employee_statuses'],
-            'idaas_config': ['idaas_account', 'idaas_secret', 'idaas_enterprise_id', 'idaas_domain'],
+            'idaas_config': ['idaas_account', 'idaas_secret', 'idaas_enterprise_id'],
             'welink_config': ['welink_client_id', 'welink_client_secret'],
             'email_config': ['email_domain', 'email_auth_token']
         }

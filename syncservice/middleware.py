@@ -1,5 +1,7 @@
 from django.utils.deprecation import MiddlewareMixin
-from syncservice.cron.scheduler import run_hr_sync_if_needed, run_task_creation_if_needed, run_account_creation_if_needed
+
+from syncservice.cron.scheduler import run_hr_sync_if_needed, run_task_creation_if_needed, \
+    run_account_creation_if_needed
 
 
 class HrSyncMiddleware(MiddlewareMixin):

@@ -40,7 +40,6 @@ class Command(BaseCommand):
                 ('idaas_account', 'your_idaas_account', 'IDAAS账号'),
                 ('idaas_secret', 'your_idaas_secret', 'IDAAS密钥'),
                 ('idaas_enterprise_id', 'your_enterprise_id', 'IDAAS企业ID'),
-                ('idaas_domain', 'domain1.com', 'IDAAS域名'),
             ],
 
             # Welink配置
