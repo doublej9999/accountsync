@@ -8,6 +8,7 @@ from django.conf import settings
 import time
 
 from syncservice.models import HrPerson, HrPersonAccount, SyncConfig
+from syncservice.services import ConfigService
 
 
 class Command(BaseCommand):
@@ -34,13 +35,13 @@ class Command(BaseCommand):
 
         try:
             # 获取配置
-            account = os.getenv('HIEDS_ACCOUNT')
-            secret = os.getenv('HIEDS_SECRET')
-            project = os.getenv('HIEDS_PROJECT')
-            enterprise = os.getenv('HIEDS_ENTERPRISE')
-            person_project_id = os.getenv('HIEDS_PERSON_PROJECT_ID')
-            tenant_id = os.getenv('HIEDS_TENANT_ID')
-            page_size = int(os.getenv('HIEDS_PAGE_SIZE', page_size))
+            account = ConfigService.get_config('hieds_account')
+            secret = ConfigService.get_config('hieds_secret')
+            project = ConfigService.get_config('hieds_project')
+            enterprise = ConfigService.get_config('hieds_enterprise')
+            person_project_id = ConfigService.get_config('hieds_person_project_id')
+            tenant_id = ConfigService.get_config('hieds_tenant_id')
+            page_size = ConfigService.get_int_config('hieds_page_size', page_size)
 
             if not all([account, secret, project, enterprise, person_project_id, tenant_id]):
                 raise CommandError('缺少必要的环境变量配置')

@@ -282,9 +282,9 @@ class AccountCreationTask(models.Model):
 
     @property
     def max_retries(self):
-        """从环境变量获取最大重试次数"""
-        import os
-        return int(os.getenv('ACCOUNT_CREATION_MAX_RETRIES', '5'))
+        """从配置获取最大重试次数"""
+        from syncservice.services import ConfigService
+        return ConfigService.get_int_config('account_creation_max_retries', 5)
 
     def should_retry(self):
         """检查是否应该重试"""

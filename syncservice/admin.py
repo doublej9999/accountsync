@@ -69,7 +69,7 @@ class HrPersonAccountAdmin(ModelAdmin):
 
 @admin.register(SyncConfig)
 class SyncConfigAdmin(ModelAdmin):
-    list_display = ['key', 'get_value_preview', 'description']
+    list_display = ['key', 'get_config_category', 'get_value_preview', 'description']
     search_fields = ['key', 'description']
     readonly_fields = ['key']
     list_per_page = 20  # 配置数据较少
@@ -83,11 +83,44 @@ class SyncConfigAdmin(ModelAdmin):
     show_full_result_count = True
 
     def get_value_preview(self, obj):
-        """显示配置值的预览（截断长文本）"""
-        if len(obj.value) > 50:
+        """显示配置值的预览（截断长文本，遮罩敏感信息）"""
+        # 敏感配置列表
+        sensitive_keys = [
+            'hieds_secret', 'idaas_secret', 'welink_client_secret',
+            'email_auth_token', 'hieds_account', 'idaas_account'
+        ]
+
+        if obj.key in sensitive_keys:
+            return self._mask_sensitive_value(obj.value)
+        elif len(obj.value) > 50:
             return obj.value[:47] + "..."
         return obj.value
     get_value_preview.short_description = '配置值'
+
+    def _mask_sensitive_value(self, value):
+        """遮罩敏感信息"""
+        if len(value) <= 4:
+            return '*' * len(value)
+        return value[:2] + '*' * (len(value) - 4) + value[-2:]
+
+    def get_config_category(self, obj):
+        """显示配置分类"""
+        categories = {
+            'system_config': ['hr_sync_enabled', 'task_auto_creation_enabled', 'task_processing_enabled', 'account_creation_enabled'],
+            'hr_sync_config': ['hieds_account', 'hieds_secret', 'hieds_project', 'hieds_enterprise', 'hieds_person_project_id', 'hieds_tenant_id', 'hieds_page_size'],
+            'task_config': ['account_creation_max_retries', 'valid_employee_statuses'],
+            'idaas_config': ['idaas_account', 'idaas_secret', 'idaas_enterprise_id', 'idaas_domain'],
+            'welink_config': ['welink_client_id', 'welink_client_secret'],
+            'email_config': ['email_domain', 'email_auth_token']
+        }
+
+        for category, keys in categories.items():
+            if obj.key in keys:
+                return category.replace('_', ' ').title()
+        return '其他'
+
+    get_config_category.short_description = '配置分类'
+    get_config_category.admin_order_field = 'key'
 
 
 @admin.register(DepartmentMapping)

@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from syncservice.models import AccountCreationTask, HrPersonAccount
-from syncservice.services import AccountCreationService
+from syncservice.services import AccountCreationService, ConfigService
 import logging
 import os
 
@@ -37,7 +37,7 @@ class Command(BaseCommand):
             ).order_by('created_at')[:max_tasks]
 
             # 过滤出重试次数未达到上限的任务
-            max_retries = int(os.getenv('ACCOUNT_CREATION_MAX_RETRIES', '5'))
+            max_retries = ConfigService.get_int_config('account_creation_max_retries', 5)
             filtered_tasks = []
             for task in pending_tasks:
                 if task.status == 'pending' or task.retry_count < max_retries:

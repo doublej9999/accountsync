@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -28,7 +27,6 @@ SECRET_KEY = 'django-insecure-h@+t!tm#sq$g9)f(1j7w-zwayg46f5s@%_hx7=wy7_fvjvy46t
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
-
 
 # Application definition
 
@@ -78,7 +76,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'accountsync.wsgi.application'
-
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -149,8 +146,7 @@ LOGGING = {
     },
 }
 
-DEFAULT_AUTO_FIELD='django.db.models.AutoField'
-
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -169,7 +165,7 @@ load_dotenv()
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',  # 引擎修改为 sqlite3
-        'NAME': BASE_DIR / 'db.sqlite3',        # 这里指定数据库文件的路径
+        'NAME': BASE_DIR / 'db.sqlite3',  # 这里指定数据库文件的路径
     }
 }
 
@@ -191,7 +187,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
@@ -202,7 +197,6 @@ TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
@@ -264,7 +258,7 @@ UNFOLD = {
                         "title": "创建任务",
                         "icon": "task",
                         "link": "/admin/syncservice/accountcreationtask/",
-                    },
+                    }
                 ],
             },
             {
@@ -273,7 +267,7 @@ UNFOLD = {
                 "collapsible": True,
                 "items": [
                     {
-                        "title": "同步配置",
+                        "title": "系统配置",
                         "icon": "settings",
                         "link": "/admin/syncservice/syncconfig/",
                     },

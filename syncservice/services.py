@@ -14,7 +14,7 @@ try:
 except ImportError:
     PYPINYIN_AVAILABLE = False
 
-from syncservice.models import HrPerson, DepartmentMapping, AccountCreationTask, AccountCreationLog
+from syncservice.models import HrPerson, DepartmentMapping, AccountCreationTask, AccountCreationLog, SyncConfig
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class AccountCreationService:
             }
 
             # 发送创建请求
-            enterprise_id = os.getenv('IDAAS_ENTERPRISE_ID')
+            enterprise_id = ConfigService.get_config('idaas_enterprise_id')
             url = f"https://apig.hieds.net/api/idaas/idm-openapi/enterprise/{enterprise_id}/user/onboarding"
 
             headers = {
@@ -169,7 +169,7 @@ class AccountCreationService:
             # 发送启用请求
             url = "http://172.20.64.24:8080/api/Exchange/EnableMailbox"
             headers = {
-                'Authorization': os.getenv('EMAIL_AUTH_TOKEN', 'abcdefghijklmnoprstuvwxyz'),
+                'Authorization': ConfigService.get_config('email_auth_token', 'abcdefghijklmnoprstuvwxyz'),
                 'Content-Type': 'application/json'
             }
 
@@ -206,8 +206,8 @@ class AccountCreationService:
             "data": {
                 "type": "token",
                 "attributes": {
-                    "account": os.getenv('IDAAS_ACCOUNT'),
-                    "secret": os.getenv('IDAAS_SECRET')
+                    "account": ConfigService.get_config('idaas_account'),
+                    "secret": ConfigService.get_config('idaas_secret')
                 }
             }
         }
@@ -239,8 +239,8 @@ class AccountCreationService:
         headers = {'Content-Type': 'application/json'}
 
         data = {
-            "client_id": os.getenv('WELINK_CLIENT_ID'),
-            "client_secret": os.getenv('WELINK_CLIENT_SECRET')
+            "client_id": ConfigService.get_config('welink_client_id'),
+            "client_secret": ConfigService.get_config('welink_client_secret')
         }
 
         response = requests.post(url, json=data, headers=headers, timeout=self.timeout)
@@ -289,7 +289,7 @@ class AccountCreationService:
     def _generate_unique_email(self, full_name: str, employee_number: str) -> str:
         """生成唯一的邮箱地址"""
         base_email = self._convert_to_pinyin(full_name).lower()
-        domain = os.getenv('EMAIL_DOMAIN', '@qq.com')
+        domain = ConfigService.get_config('email_domain', '@qq.com')
 
         # 检查是否存在相同拼音的人
         existing_emails = set()
@@ -330,3 +330,44 @@ class AccountCreationService:
             'token': token,
             'expires_at': timezone.now() + timedelta(seconds=expires_in)
         }
+
+
+class ConfigService:
+    """配置管理服务 - 统一管理SyncConfig和环境变量"""
+
+    @staticmethod
+    def get_config(key: str, default: str = None) -> str:
+        """获取配置值，优先从SyncConfig获取，后备到环境变量"""
+        try:
+            config = SyncConfig.objects.get(key=key)
+            return config.value
+        except SyncConfig.DoesNotExist:
+            # 后备到环境变量（保持向后兼容）
+            env_key = key.upper()
+            return os.getenv(env_key, default)
+
+    @staticmethod
+    def get_bool_config(key: str, default: bool = False) -> bool:
+        """获取布尔配置"""
+        value = ConfigService.get_config(key, str(default).lower())
+        return value.lower() == 'true'
+
+    @staticmethod
+    def get_int_config(key: str, default: int = 0) -> int:
+        """获取整数配置"""
+        value = ConfigService.get_config(key, str(default))
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+
+    @staticmethod
+    def get_json_config(key: str, default: Any = None) -> Any:
+        """获取JSON配置"""
+        value = ConfigService.get_config(key)
+        if value:
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                pass
+        return default
