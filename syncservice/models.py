@@ -37,6 +37,7 @@ class HrPersonAccount(models.Model):
         indexes = [
             models.Index(fields=['person', 'account_type']),
             models.Index(fields=['is_created']),
+            models.Index(fields=['account_identifier']),  # 用于搜索优化
         ]
 
     def __str__(self):
@@ -131,6 +132,9 @@ class HrPerson(models.Model):
             models.Index(fields=['employee_number']),
             models.Index(fields=['creation_date']),
             models.Index(fields=['last_update_date']),
+            models.Index(fields=['full_name']),  # 用于搜索优化
+            models.Index(fields=['english_name']),  # 用于搜索优化
+            models.Index(fields=['email_address']),  # 用于搜索优化
         ]
 
     def __str__(self):
@@ -184,6 +188,11 @@ class DepartmentMapping(models.Model):
         verbose_name = '部门映射'
         verbose_name_plural = '部门映射'
         ordering = ['idata_departmentcode']
+        indexes = [
+            models.Index(fields=['idata_departmentcode']),
+            models.Index(fields=['idaas_departmentcode']),  # 用于搜索优化
+            models.Index(fields=['ou']),  # 用于搜索优化
+        ]
 
     def __str__(self):
         return f"{self.idata_departmentcode} -> {self.idaas_departmentcode}"
@@ -324,6 +333,10 @@ class AccountCreationLog(models.Model):
         verbose_name_plural = '账号创建日志'
         ordering = ['task', 'execution_attempt']
         unique_together = ['task', 'execution_attempt']  # 确保每轮执行只有一个日志
+        indexes = [
+            models.Index(fields=['task', 'execution_attempt']),
+            models.Index(fields=['error_message']),  # 用于搜索优化
+        ]
 
     def __str__(self):
         return f"{self.task.task_id} - 第{self.execution_attempt}次执行 - {self.error_message[:50]}..."

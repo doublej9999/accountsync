@@ -81,7 +81,7 @@ class AccountCreationService:
             response.raise_for_status()
 
             result = response.json()
-            if result.get('code') != 200:
+            if result.get('code') != 201:
                 raise Exception(f"IDAAS API 返回错误: {result}")
 
             return {

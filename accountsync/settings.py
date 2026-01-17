@@ -33,7 +33,10 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'unfold',  # Unfold admin theme - must be before django.contrib.admin
+    'unfold.contrib.filters',  # Advanced filters
+    'unfold.contrib.forms',  # Special form elements
+    'django.contrib.admin',  # Django admin
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -152,17 +155,22 @@ DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 load_dotenv()
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME'),
+#         'USER': os.getenv('DB_USER'),
+#         'PASSWORD': os.getenv('DB_PASSWORD'),
+#         'HOST': os.getenv('DB_HOST'),
+#         'PORT': os.getenv('DB_PORT'),
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'ENGINE': 'django.db.backends.sqlite3',  # 引擎修改为 sqlite3
+        'NAME': BASE_DIR / 'db.sqlite3',        # 这里指定数据库文件的路径
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -199,3 +207,89 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Unfold Admin Theme Configuration
+UNFOLD = {
+    "SITE_TITLE": "AccountSync 管理系统",
+    "SITE_HEADER": "AccountSync",
+    "SITE_SUBHEADER": "账号自动化管理系统",
+    "SITE_URL": "/",
+    "SITE_ICON": None,  # 移除图标
+    "SITE_SYMBOL": None,  # 移除符号
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_BACK_BUTTON": True,
+    "ENVIRONMENT": "AccountSync.environment_callback",
+    "THEME": "auto",  # Auto-detect light/dark mode
+    "LOGIN": {
+        "image": None,  # Can be customized later
+    },
+    "BORDER_RADIUS": "6px",
+    "COLORS": {
+        "primary": {
+            "50": "oklch(97.7% .014 308.299)",
+            "100": "oklch(94.6% .033 307.174)",
+            "200": "oklch(90.2% .063 306.703)",
+            "300": "oklch(82.7% .119 306.383)",
+            "400": "oklch(71.4% .203 305.504)",
+            "500": "oklch(62.7% .265 303.9)",
+            "600": "oklch(55.8% .288 302.321)",
+            "700": "oklch(49.6% .265 301.924)",
+            "800": "oklch(43.8% .218 303.724)",
+            "900": "oklch(38.1% .176 304.987)",
+            "950": "oklch(29.1% .149 302.717)",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "人员管理",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "人员信息",
+                        "icon": "people",
+                        "link": "/admin/syncservice/hrperson/",
+                    },
+                    {
+                        "title": "人员账号",
+                        "icon": "account_circle",
+                        "link": "/admin/syncservice/hrpersonaccount/",
+                    },
+                    {
+                        "title": "创建任务",
+                        "icon": "task",
+                        "link": "/admin/syncservice/accountcreationtask/",
+                    },
+                ],
+            },
+            {
+                "title": "系统配置",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "同步配置",
+                        "icon": "settings",
+                        "link": "/admin/syncservice/syncconfig/",
+                    },
+                    {
+                        "title": "部门映射",
+                        "icon": "business",
+                        "link": "/admin/syncservice/departmentmapping/",
+                    },
+                ],
+            },
+        ],
+    },
+}
+
+
+def environment_callback(request):
+    """
+    环境标识回调函数
+    """
+    return ["开发环境", "warning"]  # warning 表示开发/测试环境
