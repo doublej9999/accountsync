@@ -45,6 +45,9 @@ class AccountCreationService:
 
             # 获取部门映射
             department_mapping = self._get_department_mapping(department_code)
+            # 检查 OU 是否可用
+            if not department_mapping or not department_mapping.ou:
+                raise Exception(f"部门代码 {department_code} 对应的 OU 不存在，无法创建账号")
 
             # 生成用户名和邮箱
             username = self._generate_username(person.employee_number, person.full_name)
@@ -63,7 +66,7 @@ class AccountCreationService:
                     "mobile": person.telephone_number1 or person.telephone_number2 or "",
                     "userExtends": {
                         "workArea": "China",
-                        "ou": department_mapping.ou if department_mapping else f"OU=外部公司人员，DC={os.getenv('IDAAS_DC1', 'domain')},DC={os.getenv('IDAAS_DC2', 'com')}"
+                        "ou": department_mapping.ou
                     }
                 }
             }
