@@ -108,10 +108,6 @@ class AccountTaskCreator:
         return task
 
 
-# 全局任务创建器实例
-account_task_creator = AccountTaskCreator()
-
-
 class TaskCreationScheduler:
     """任务创建定时器 - 专门负责自动创建账号任务"""
 
@@ -134,12 +130,9 @@ class TaskCreationScheduler:
         """执行任务创建"""
         try:
             logger.info("开始自动创建账号任务")
-            created_count = account_task_creator.create_pending_tasks()
+            call_command('create_account_tasks')
             self.last_run = timezone.now()
-            if created_count > 0:
-                logger.info(f"自动创建账号任务完成，共创建 {created_count} 个任务")
-            else:
-                logger.info("自动创建账号任务完成，没有需要创建的新任务")
+            logger.info("自动创建账号任务完成")
         except Exception as e:
             logger.error(f"自动创建账号任务失败: {e}")
 

@@ -9,7 +9,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationLog
+from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask
 from syncservice.serializer import (
     HrPersonSerializer, HrPersonDetailSerializer, HrPersonAccountSerializer,
     SyncConfigSerializer, SyncStatusSerializer, ManualSyncSerializer,
@@ -114,7 +114,7 @@ class HrPersonViewSet(ModelViewSet):
     @action(detail=False, methods=['post'])
     def manual_sync(self, request):
         """手动触发同步"""
-        from syncservice.management.commands.sync_hr_persons import Command
+        from syncservice.management.commands.task.sync_hr_persons import Command
 
         serializer = ManualSyncSerializer(data=request.data)
         if not serializer.is_valid():

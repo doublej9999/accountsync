@@ -234,18 +234,6 @@ GET /hr-persons/account_stats/
 PATCH /hr-person-accounts/{id}/
 ```
 
-### 管理命令
-
-#### 补全现有人员账号
-
-```bash
-# 预览模式
-python manage.py create_missing_accounts --dry-run
-
-# 实际执行
-python manage.py create_missing_accounts
-```
-
 ### 数据模型
 
 #### HrPersonAccount 字段
