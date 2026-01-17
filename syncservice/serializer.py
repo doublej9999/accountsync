@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationLog
 
@@ -98,6 +100,23 @@ class UserCreationDataSerializer(serializers.Serializer):
     country = serializers.CharField(required=True)
 
 
+class AccountCreationLogSerializer(serializers.ModelSerializer):
+    """账号创建日志序列化器"""
+    task_info = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountCreationLog
+        fields = '__all__'
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_task_info(self, obj):
+        return {
+            'task_id': obj.task.task_id,
+            'person': obj.task.person.employee_number,
+            'account_type': obj.task.account_type
+        }
+
+
 class AccountCreationTaskSerializer(serializers.ModelSerializer):
     """账号创建任务序列化器"""
     person_info = serializers.SerializerMethodField()
@@ -111,6 +130,7 @@ class AccountCreationTaskSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['task_id', 'result_data', 'created_at', 'updated_at', 'completed_at']
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_person_info(self, obj):
         return {
             'employee_number': obj.person.employee_number,
@@ -119,28 +139,14 @@ class AccountCreationTaskSerializer(serializers.ModelSerializer):
             'department': obj.person.person_dept if obj.person.person_dept else {}
         }
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_retry_count(self, obj):
         return obj.retry_count
 
+    @extend_schema_field(AccountCreationLogSerializer(many=True))
     def get_error_logs(self, obj):
         logs = obj.error_logs.all()
         return AccountCreationLogSerializer(logs, many=True).data
-
-
-class AccountCreationLogSerializer(serializers.ModelSerializer):
-    """账号创建日志序列化器"""
-    task_info = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AccountCreationLog
-        fields = '__all__'
-
-    def get_task_info(self, obj):
-        return {
-            'task_id': obj.task.task_id,
-            'person': obj.task.person.employee_number,
-            'account_type': obj.task.account_type
-        }
 
 
 class TaskExecutionSerializer(serializers.Serializer):

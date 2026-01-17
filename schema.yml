@@ -1,0 +1,1946 @@
+openapi: 3.0.3
+info:
+  title: AccountSync
+  version: 1.0.0
+  description: 账号自动化
+paths:
+  /account-creation/:
+    get:
+      operationId: account_creation_list
+      parameters:
+      - in: query
+        name: account_type
+        schema:
+          type: string
+          title: 账号类型
+          enum:
+          - email
+          - idaas
+          - welink
+        description: |-
+          * `idaas` - IDAAS账号
+          * `welink` - Welink账号
+          * `email` - 邮箱账号
+      - name: ordering
+        required: false
+        in: query
+        description: 用于排序结果的字段。
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      - in: query
+        name: person__employee_number
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: 搜索关键词。
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          title: 任务状态
+          enum:
+          - completed
+          - failed
+          - pending
+          - processing
+        description: |-
+          * `pending` - 待处理
+          * `processing` - 处理中
+          * `completed` - 已完成
+          * `failed` - 失败
+      tags:
+      - account-creation
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAccountCreationTaskList'
+          description: ''
+    post:
+      operationId: account_creation_create
+      tags:
+      - account-creation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+  /account-creation/{id}/:
+    get:
+      operationId: account_creation_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 账号创建任务 的 唯一整数值。
+        required: true
+      tags:
+      - account-creation
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+    put:
+      operationId: account_creation_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 账号创建任务 的 唯一整数值。
+        required: true
+      tags:
+      - account-creation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+    patch:
+      operationId: account_creation_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 账号创建任务 的 唯一整数值。
+        required: true
+      tags:
+      - account-creation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountCreationTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountCreationTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountCreationTask'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+    delete:
+      operationId: account_creation_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 账号创建任务 的 唯一整数值。
+        required: true
+      tags:
+      - account-creation
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /account-creation/create_accounts/:
+    post:
+      operationId: account_creation_create_accounts_create
+      description: 批量创建账号
+      tags:
+      - account-creation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AccountCreationTask'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+  /department-mappings/:
+    get:
+      operationId: department_mappings_list
+      parameters:
+      - in: query
+        name: idaas_departmentcode
+        schema:
+          type: string
+      - in: query
+        name: idata_departmentcode
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: 用于排序结果的字段。
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: 搜索关键词。
+        schema:
+          type: string
+      tags:
+      - department-mappings
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDepartmentMappingList'
+          description: ''
+    post:
+      operationId: department_mappings_create
+      tags:
+      - department-mappings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentMapping'
+          description: ''
+  /department-mappings/{id}/:
+    get:
+      operationId: department_mappings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 部门映射 的 唯一整数值。
+        required: true
+      tags:
+      - department-mappings
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentMapping'
+          description: ''
+    put:
+      operationId: department_mappings_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 部门映射 的 唯一整数值。
+        required: true
+      tags:
+      - department-mappings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentMapping'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentMapping'
+          description: ''
+    patch:
+      operationId: department_mappings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 部门映射 的 唯一整数值。
+        required: true
+      tags:
+      - department-mappings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentMapping'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentMapping'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentMapping'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentMapping'
+          description: ''
+    delete:
+      operationId: department_mappings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 部门映射 的 唯一整数值。
+        required: true
+      tags:
+      - department-mappings
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /hr-person-accounts/:
+    get:
+      operationId: hr_person_accounts_list
+      parameters:
+      - in: query
+        name: account_type
+        schema:
+          type: string
+      - in: query
+        name: is_created
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: 用于排序结果的字段。
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      - in: query
+        name: person__employee_number
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: 搜索关键词。
+        schema:
+          type: string
+      tags:
+      - hr-person-accounts
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHrPersonAccountList'
+          description: ''
+    post:
+      operationId: hr_person_accounts_create
+      tags:
+      - hr-person-accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPersonAccount'
+          description: ''
+  /hr-person-accounts/{id}/:
+    get:
+      operationId: hr_person_accounts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 人员账号 的 唯一整数值。
+        required: true
+      tags:
+      - hr-person-accounts
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPersonAccount'
+          description: ''
+    put:
+      operationId: hr_person_accounts_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 人员账号 的 唯一整数值。
+        required: true
+      tags:
+      - hr-person-accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HrPersonAccount'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPersonAccount'
+          description: ''
+    patch:
+      operationId: hr_person_accounts_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 人员账号 的 唯一整数值。
+        required: true
+      tags:
+      - hr-person-accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPersonAccount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPersonAccount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPersonAccount'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPersonAccount'
+          description: ''
+    delete:
+      operationId: hr_person_accounts_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 人员账号 的 唯一整数值。
+        required: true
+      tags:
+      - hr-person-accounts
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /hr-persons/:
+    get:
+      operationId: hr_persons_list
+      parameters:
+      - in: query
+        name: creation_date_gte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: creation_date_lte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: employee_number
+        schema:
+          type: string
+      - in: query
+        name: employee_status
+        schema:
+          type: string
+      - in: query
+        name: full_name
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: 用于排序结果的字段。
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      - in: query
+        name: person_type
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: 搜索关键词。
+        schema:
+          type: string
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHrPersonList'
+          description: ''
+    post:
+      operationId: hr_persons_create
+      tags:
+      - hr-persons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+  /hr-persons/{person_id}/:
+    get:
+      operationId: hr_persons_retrieve
+      description: 重写详情视图，使用详细序列化器
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        description: 标识此 人员信息 的 唯一值。
+        required: true
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+    put:
+      operationId: hr_persons_update
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        description: 标识此 人员信息 的 唯一值。
+        required: true
+      tags:
+      - hr-persons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HrPerson'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+    patch:
+      operationId: hr_persons_partial_update
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        description: 标识此 人员信息 的 唯一值。
+        required: true
+      tags:
+      - hr-persons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPerson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPerson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedHrPerson'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+    delete:
+      operationId: hr_persons_destroy
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        description: 标识此 人员信息 的 唯一值。
+        required: true
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /hr-persons/{person_id}/accounts/:
+    get:
+      operationId: hr_persons_accounts_retrieve
+      description: 获取人员的账号信息
+      parameters:
+      - in: path
+        name: person_id
+        schema:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        description: 标识此 人员信息 的 唯一值。
+        required: true
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+  /hr-persons/account_stats/:
+    get:
+      operationId: hr_persons_account_stats_retrieve
+      description: 获取账号创建统计
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+  /hr-persons/sync_status/:
+    get:
+      operationId: hr_persons_sync_status_retrieve
+      description: 获取同步状态
+      tags:
+      - hr-persons
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HrPerson'
+          description: ''
+  /sync-configs/:
+    get:
+      operationId: sync_configs_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: 分页结果集中的页码。
+        schema:
+          type: integer
+      tags:
+      - sync-configs
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSyncConfigList'
+          description: ''
+    post:
+      operationId: sync_configs_create
+      tags:
+      - sync-configs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConfig'
+          description: ''
+  /sync-configs/{id}/:
+    get:
+      operationId: sync_configs_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 同步配置 的 唯一整数值。
+        required: true
+      tags:
+      - sync-configs
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConfig'
+          description: ''
+    put:
+      operationId: sync_configs_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 同步配置 的 唯一整数值。
+        required: true
+      tags:
+      - sync-configs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncConfig'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConfig'
+          description: ''
+    patch:
+      operationId: sync_configs_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 同步配置 的 唯一整数值。
+        required: true
+      tags:
+      - sync-configs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConfig'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConfig'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSyncConfig'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncConfig'
+          description: ''
+    delete:
+      operationId: sync_configs_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: 标识此 同步配置 的 唯一整数值。
+        required: true
+      tags:
+      - sync-configs
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /task-management/create_account_tasks/:
+    post:
+      operationId: task_management_create_account_tasks_create
+      description: 手动触发账号任务创建
+      tags:
+      - task-management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskExecution'
+          description: ''
+  /task-management/process_account_tasks/:
+    post:
+      operationId: task_management_process_account_tasks_create
+      description: 手动触发账号任务处理
+      tags:
+      - task-management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskExecution'
+          description: ''
+  /task-management/sync_hr_persons/:
+    post:
+      operationId: task_management_sync_hr_persons_create
+      description: 手动触发HR人员同步
+      tags:
+      - task-management
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskExecution'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskExecution'
+          description: ''
+components:
+  schemas:
+    AccountCreationLog:
+      type: object
+      description: 账号创建日志序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        task_info:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        execution_attempt:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 执行尝试次数
+        error_message:
+          type: string
+          title: 错误信息
+        error_details:
+          nullable: true
+          title: 错误详情
+        execution_context:
+          nullable: true
+          title: 执行上下文
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        task:
+          type: integer
+          title: 任务
+      required:
+      - created_at
+      - error_message
+      - execution_attempt
+      - id
+      - task
+      - task_info
+    AccountCreationTask:
+      type: object
+      description: 账号创建任务序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        person_info:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        account_type_display:
+          type: string
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        retry_count:
+          type: integer
+          readOnly: true
+        error_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountCreationLog'
+          readOnly: true
+        task_id:
+          type: string
+          readOnly: true
+          title: 任务ID
+        account_type:
+          allOf:
+          - $ref: '#/components/schemas/AccountTypeEnum'
+          title: 账号类型
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          title: 任务状态
+        result_data:
+          readOnly: true
+          nullable: true
+          title: 结果数据
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 完成时间
+        person:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员
+        depends_on_task:
+          type: integer
+          nullable: true
+          title: 依赖任务
+      required:
+      - account_type
+      - account_type_display
+      - completed_at
+      - created_at
+      - error_logs
+      - id
+      - person
+      - person_info
+      - result_data
+      - retry_count
+      - status_display
+      - task_id
+      - updated_at
+    AccountTypeEnum:
+      enum:
+      - idaas
+      - welink
+      - email
+      type: string
+      description: |-
+        * `idaas` - IDAAS账号
+        * `welink` - Welink账号
+        * `email` - 邮箱账号
+    DepartmentMapping:
+      type: object
+      description: 部门映射序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        idata_departmentcode:
+          type: string
+          title: IData部门代码
+          maxLength: 50
+        idaas_departmentcode:
+          type: string
+          title: IDAAS部门代码
+          maxLength: 50
+        ou:
+          type: string
+          title: OU路径
+          maxLength: 200
+      required:
+      - id
+      - idaas_departmentcode
+      - idata_departmentcode
+      - ou
+    HrPerson:
+      type: object
+      properties:
+        person_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/HrPersonAccount'
+          readOnly: true
+        employee_number:
+          type: string
+          title: 员工编号
+          maxLength: 50
+        full_name:
+          type: string
+          title: 全名
+          maxLength: 100
+        english_name:
+          type: string
+          nullable: true
+          title: 英文名
+          maxLength: 100
+        sex:
+          type: string
+          nullable: true
+          title: 性别
+          maxLength: 20
+        birth_day:
+          type: string
+          format: date
+          nullable: true
+          title: 出生日期
+        nationality_code:
+          type: string
+          nullable: true
+          title: 国籍代码
+          maxLength: 10
+        person_type:
+          type: string
+          title: 人员类型
+          maxLength: 10
+        employee_status:
+          type: string
+          title: 员工状态
+          maxLength: 10
+        employee_account:
+          type: string
+          nullable: true
+          title: 员工账户
+          maxLength: 50
+        user_id:
+          type: string
+          nullable: true
+          title: 用户ID
+          maxLength: 50
+        employee_description:
+          type: string
+          nullable: true
+          title: 员工描述
+        email_address:
+          type: string
+          format: email
+          nullable: true
+          title: 邮箱
+          maxLength: 254
+        telephone_number1:
+          type: string
+          nullable: true
+          title: 电话1
+          maxLength: 20
+        telephone_number2:
+          type: string
+          nullable: true
+          title: 电话2
+          maxLength: 20
+        telephone_number3:
+          type: string
+          nullable: true
+          title: 电话3
+          maxLength: 20
+        full_address:
+          type: string
+          nullable: true
+          title: 完整地址
+        postal_code:
+          type: string
+          nullable: true
+          title: 邮政编码
+          maxLength: 10
+        base_location:
+          type: string
+          nullable: true
+          title: 基地位置
+          maxLength: 100
+        expense_account:
+          type: string
+          nullable: true
+          title: 费用账户
+          maxLength: 50
+        person_pinyin_name:
+          type: string
+          nullable: true
+          title: 人员拼音名
+          maxLength: 100
+        original_hire_date:
+          type: string
+          format: date
+          nullable: true
+          title: 原始入职日期
+        creation_date:
+          type: string
+          format: date-time
+          title: 创建日期
+        last_update_date:
+          type: string
+          format: date-time
+          title: 最后更新日期
+        effective_date:
+          type: string
+          format: date
+          nullable: true
+          title: 生效日期
+        disable_date:
+          type: string
+          format: date
+          nullable: true
+          title: 禁用日期
+        person_dept:
+          title: 部门信息
+        tenant_id:
+          type: string
+          title: 租户ID
+          maxLength: 50
+        created_by:
+          type: string
+          title: 创建人
+          maxLength: 20
+        last_updated_by:
+          type: string
+          title: 最后更新人
+          maxLength: 20
+      required:
+      - accounts
+      - created_by
+      - creation_date
+      - employee_number
+      - employee_status
+      - full_name
+      - last_update_date
+      - last_updated_by
+      - person_dept
+      - person_id
+      - person_type
+      - tenant_id
+    HrPersonAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        account_type_display:
+          type: string
+          readOnly: true
+        account_type:
+          allOf:
+          - $ref: '#/components/schemas/AccountTypeEnum'
+          title: 账号类型
+        account_identifier:
+          type: string
+          nullable: true
+          title: 账号标识
+          maxLength: 200
+        is_created:
+          type: boolean
+          title: 是否已创建
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        person:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员
+      required:
+      - account_type
+      - account_type_display
+      - created_at
+      - id
+      - person
+      - updated_at
+    ModeEnum:
+      enum:
+      - dry_run
+      - run
+      type: string
+      description: |-
+        * `dry_run` - dry_run
+        * `run` - run
+    PaginatedAccountCreationTaskList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountCreationTask'
+    PaginatedDepartmentMappingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentMapping'
+    PaginatedHrPersonAccountList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HrPersonAccount'
+    PaginatedHrPersonList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HrPerson'
+    PaginatedSyncConfigList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncConfig'
+    PatchedAccountCreationTask:
+      type: object
+      description: 账号创建任务序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        person_info:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        account_type_display:
+          type: string
+          readOnly: true
+        status_display:
+          type: string
+          readOnly: true
+        retry_count:
+          type: integer
+          readOnly: true
+        error_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountCreationLog'
+          readOnly: true
+        task_id:
+          type: string
+          readOnly: true
+          title: 任务ID
+        account_type:
+          allOf:
+          - $ref: '#/components/schemas/AccountTypeEnum'
+          title: 账号类型
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          title: 任务状态
+        result_data:
+          readOnly: true
+          nullable: true
+          title: 结果数据
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 完成时间
+        person:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员
+        depends_on_task:
+          type: integer
+          nullable: true
+          title: 依赖任务
+    PatchedDepartmentMapping:
+      type: object
+      description: 部门映射序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        idata_departmentcode:
+          type: string
+          title: IData部门代码
+          maxLength: 50
+        idaas_departmentcode:
+          type: string
+          title: IDAAS部门代码
+          maxLength: 50
+        ou:
+          type: string
+          title: OU路径
+          maxLength: 200
+    PatchedHrPerson:
+      type: object
+      properties:
+        person_id:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员ID
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/HrPersonAccount'
+          readOnly: true
+        employee_number:
+          type: string
+          title: 员工编号
+          maxLength: 50
+        full_name:
+          type: string
+          title: 全名
+          maxLength: 100
+        english_name:
+          type: string
+          nullable: true
+          title: 英文名
+          maxLength: 100
+        sex:
+          type: string
+          nullable: true
+          title: 性别
+          maxLength: 20
+        birth_day:
+          type: string
+          format: date
+          nullable: true
+          title: 出生日期
+        nationality_code:
+          type: string
+          nullable: true
+          title: 国籍代码
+          maxLength: 10
+        person_type:
+          type: string
+          title: 人员类型
+          maxLength: 10
+        employee_status:
+          type: string
+          title: 员工状态
+          maxLength: 10
+        employee_account:
+          type: string
+          nullable: true
+          title: 员工账户
+          maxLength: 50
+        user_id:
+          type: string
+          nullable: true
+          title: 用户ID
+          maxLength: 50
+        employee_description:
+          type: string
+          nullable: true
+          title: 员工描述
+        email_address:
+          type: string
+          format: email
+          nullable: true
+          title: 邮箱
+          maxLength: 254
+        telephone_number1:
+          type: string
+          nullable: true
+          title: 电话1
+          maxLength: 20
+        telephone_number2:
+          type: string
+          nullable: true
+          title: 电话2
+          maxLength: 20
+        telephone_number3:
+          type: string
+          nullable: true
+          title: 电话3
+          maxLength: 20
+        full_address:
+          type: string
+          nullable: true
+          title: 完整地址
+        postal_code:
+          type: string
+          nullable: true
+          title: 邮政编码
+          maxLength: 10
+        base_location:
+          type: string
+          nullable: true
+          title: 基地位置
+          maxLength: 100
+        expense_account:
+          type: string
+          nullable: true
+          title: 费用账户
+          maxLength: 50
+        person_pinyin_name:
+          type: string
+          nullable: true
+          title: 人员拼音名
+          maxLength: 100
+        original_hire_date:
+          type: string
+          format: date
+          nullable: true
+          title: 原始入职日期
+        creation_date:
+          type: string
+          format: date-time
+          title: 创建日期
+        last_update_date:
+          type: string
+          format: date-time
+          title: 最后更新日期
+        effective_date:
+          type: string
+          format: date
+          nullable: true
+          title: 生效日期
+        disable_date:
+          type: string
+          format: date
+          nullable: true
+          title: 禁用日期
+        person_dept:
+          title: 部门信息
+        tenant_id:
+          type: string
+          title: 租户ID
+          maxLength: 50
+        created_by:
+          type: string
+          title: 创建人
+          maxLength: 20
+        last_updated_by:
+          type: string
+          title: 最后更新人
+          maxLength: 20
+    PatchedHrPersonAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        account_type_display:
+          type: string
+          readOnly: true
+        account_type:
+          allOf:
+          - $ref: '#/components/schemas/AccountTypeEnum'
+          title: 账号类型
+        account_identifier:
+          type: string
+          nullable: true
+          title: 账号标识
+          maxLength: 200
+        is_created:
+          type: boolean
+          title: 是否已创建
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        person:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: 人员
+    PatchedSyncConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        key:
+          type: string
+          title: 配置键
+          maxLength: 100
+        value:
+          type: string
+          title: 配置值
+        description:
+          type: string
+          nullable: true
+          title: 描述
+          maxLength: 200
+    StatusEnum:
+      enum:
+      - pending
+      - processing
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `pending` - 待处理
+        * `processing` - 处理中
+        * `completed` - 已完成
+        * `failed` - 失败
+    SyncConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        key:
+          type: string
+          title: 配置键
+          maxLength: 100
+        value:
+          type: string
+          title: 配置值
+        description:
+          type: string
+          nullable: true
+          title: 描述
+          maxLength: 200
+      required:
+      - id
+      - key
+      - value
+    TaskExecution:
+      type: object
+      description: 任务执行序列化器
+      properties:
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          default: dry_run
+        force_full_sync:
+          type: boolean
+          default: false
+        employee_status:
+          type: array
+          items:
+            type: string
+        max_tasks:
+          type: integer
+          minimum: 1
+          default: 50
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
