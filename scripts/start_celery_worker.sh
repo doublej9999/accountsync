@@ -2,6 +2,7 @@
 
 # Celery Worker 启动脚本
 # 用于处理异步任务
+# 使用Django数据库作为消息代理，无需Redis
 
 # 设置Django环境变量
 export DJANGO_SETTINGS_MODULE=accountsync.settings
@@ -14,6 +15,6 @@ export DJANGO_SETTINGS_MODULE=accountsync.settings
 
 celery -A accountsync worker \
     --loglevel=info \
-    --concurrency=4 \
+    --concurrency=2 \
     --queues=hr_sync,account_tasks,account_processing \
     --hostname=accountsync-worker@%h

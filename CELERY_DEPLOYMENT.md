@@ -18,15 +18,16 @@
 ## 依赖要求
 
 ### 系统要求
-- Redis 服务器 (用于消息队列)
+- **开发环境**: 无需额外服务（使用Django数据库作为消息代理）
+- **生产环境**: Redis 或 RabbitMQ 服务器（推荐）
 - Python 3.8+
 
 ### Python 包
 ```
 celery>=5.3.0
-redis>=4.5.0
 django-celery-beat>=2.5.0
 django-celery-results>=2.6.0
+# redis>=4.5.0  # 生产环境需要，开发环境可选
 ```
 
 ## 定时任务配置
@@ -46,19 +47,17 @@ django-celery-results>=2.6.0
 
 ## 部署步骤
 
-### 1. 安装和配置 Redis
+### 1. 环境配置
 
-**Windows (开发环境):**
+**开发环境:**
+无需额外配置，直接使用Django数据库作为消息代理
+
+**生产环境 (推荐使用Redis):**
 ```bash
-# 使用 Chocolatey 安装 (如果有的话)
+# Windows
 choco install redis-64
 
-# 或者下载并手动安装
-# 从 https://redis.io/download 下载 Redis
-```
-
-**Linux:**
-```bash
+# Linux
 sudo apt-get install redis-server
 sudo systemctl start redis-server
 sudo systemctl enable redis-server
@@ -66,7 +65,10 @@ sudo systemctl enable redis-server
 
 ### 2. 环境变量配置
 
-设置 Redis 连接 (可选，默认使用 `redis://localhost:6379/0`):
+**开发环境:**
+无需环境变量，使用默认的数据库broker
+
+**生产环境 (使用Redis):**
 ```bash
 export REDIS_URL=redis://localhost:6379/0
 ```
@@ -160,7 +162,16 @@ celery -A accountsync inspect scheduled
 
 ### 常见问题
 
-**Q: Redis 连接失败**
+**Q: 数据库broker连接问题**
+```bash
+# 检查Django数据库连接
+python manage.py dbshell
+
+# 确保已运行迁移
+python manage.py migrate
+```
+
+**Q: Redis 连接失败 (生产环境)**
 ```bash
 # 检查 Redis 服务状态
 redis-cli ping

@@ -293,9 +293,9 @@ def environment_callback(request):
 
 
 # Celery配置
-# 使用Redis作为消息代理
-CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+# 使用Django数据库作为消息代理（开发环境推荐）
+CELERY_BROKER_URL = 'django://'
+CELERY_RESULT_BACKEND = 'django-db'  # 使用Django数据库存储任务结果
 
 # Celery任务序列化
 CELERY_TASK_SERIALIZER = 'json'

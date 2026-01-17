@@ -25,7 +25,7 @@ python manage.py init_sync_config
 # 终端1: 启动Django开发服务器
 python manage.py runserver
 
-# 终端2: 启动Celery Worker (处理异步任务)
+# 终端2: 启动Celery Worker (异步任务处理)
 ./scripts/start_celery_worker.sh
 
 # 终端3: 启动Celery Beat (定时任务调度)
@@ -41,8 +41,8 @@ python manage.py runserver
 
 - **Django**: Web框架和API
 - **Celery**: 异步任务队列
-- **Redis**: 消息代理
-- **PostgreSQL/SQLite**: 数据库
+- **Django数据库**: 消息代理（开发环境）
+- **PostgreSQL/SQLite**: 业务数据库
 
 ## 详细文档
 
