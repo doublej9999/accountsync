@@ -225,10 +225,10 @@ class AccountCreationViewSet(ModelViewSet):
                 # 获取或创建人员记录
                 # 注意：person_id 是主键，需要从业务系统中获取或生成
                 # 这里暂时使用 employee_number 的数值部分作为 person_id
-                # todo 这里的person_id后续需要保持与同步的一致
+                # todo 这里的person_id后续需要保持与同步的一致,后面需要重新在获取人员信息，更新person_id
                 try:
                     # 尝试从 employee_number 中提取数字部分
-                    person_id = int(''.join(filter(str.isdigit, employee_number)))
+                    person_id = employee_number
                 except ValueError:
                     # 如果无法提取，使用 hash 的后8位作为较小的整数
                     import hashlib
