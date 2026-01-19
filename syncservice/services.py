@@ -307,10 +307,20 @@ class AccountCreationService:
             return chinese_name
 
     def _generate_username(self, employee_number: str, full_name: str) -> str:
-        """生成用户名：拼音首字母 + 员工编号"""
-        pinyin = self._convert_to_pinyin(full_name)
-        initials = ''.join([word[0] for word in pinyin.split() if word])
-        return f"{initials}{employee_number}"
+        """生成用户名：姓名首字母 + 员工编号"""
+        if not PYPINYIN_AVAILABLE:
+            logger.warning("pypinyin 未安装，无法生成拼音用户名")
+            return f"{employee_number}"
+
+        try:
+            # 获取拼音列表 ['zhang', 'san']
+            pinyin_list = pypinyin.lazy_pinyin(full_name, style=pypinyin.Style.NORMAL)
+            # 只取第一个字的首字母
+            first_initial = pinyin_list[0][0] if pinyin_list and pinyin_list[0] else ''
+            return f"{first_initial}{employee_number}"
+        except Exception as e:
+            logger.error(f"用户名生成失败: {full_name}, 错误: {e}")
+            return f"{employee_number}"
 
     def _generate_unique_email(self, full_name: str, employee_number: str, person_type: str) -> str:
         """根据人员类型生成唯一的邮箱地址"""
