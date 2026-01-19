@@ -8,7 +8,7 @@ from unfold.contrib.filters.admin import (
 )
 
 from syncservice.models import (
-    HrPerson, HrPersonAccount, SyncConfig, DepartmentMapping,
+    HrPerson, HrPersonAccount, SyncConfig, DepartmentMapping, PersonTypeMapping,
     AccountCreationTask, AccountCreationLog
 )
 from syncservice.services import AccountCreationService
@@ -113,7 +113,7 @@ class SyncConfigAdmin(ModelAdmin):
             'task_config': ['account_creation_max_retries', 'valid_employee_statuses'],
             'idaas_config': ['idaas_account', 'idaas_secret', 'idaas_enterprise_id'],
             'welink_config': ['welink_client_id', 'welink_client_secret'],
-            'email_config': ['email_domain', 'email_auth_token']
+            'email_config': ['email_auth_token']
         }
 
         for category, keys in categories.items():
@@ -138,6 +138,38 @@ class DepartmentMappingAdmin(ModelAdmin):
 
     # 显示完整结果计数
     show_full_result_count = True
+
+
+@admin.register(PersonTypeMapping)
+class PersonTypeMappingAdmin(ModelAdmin):
+    list_display = ['person_type', 'email_domain', 'idaas_user_type', 'welink_person_type', 'is_active', 'description']
+    list_filter = ['is_active']
+    search_fields = ['person_type', 'description', 'email_domain']
+    list_editable = ['is_active']
+    list_per_page = 20  # 映射数据较少
+
+    # Unfold specific configurations
+    compressed_fields = True
+    warn_unsaved_form = True
+    list_fullwidth = True
+
+    # 显示完整结果计数
+    show_full_result_count = True
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('person_type', 'description')
+        }),
+        ('邮箱配置', {
+            'fields': ('email_domain',)
+        }),
+        ('账号类型配置', {
+            'fields': ('idaas_user_type', 'welink_person_type')
+        }),
+        ('状态控制', {
+            'fields': ('is_active',)
+        }),
+    )
 
 
 class AccountCreationLogInline(TabularInline):

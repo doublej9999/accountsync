@@ -198,6 +198,28 @@ class DepartmentMapping(models.Model):
         return f"{self.idata_departmentcode} -> {self.idaas_departmentcode}"
 
 
+class PersonTypeMapping(models.Model):
+    """人员类型映射表 - 根据person_type动态获取账号类型配置"""
+    person_type = models.CharField(max_length=10, unique=True, verbose_name='人员类型')
+    email_domain = models.CharField(max_length=50, verbose_name='邮箱域名')
+    idaas_user_type = models.CharField(max_length=20, verbose_name='IDAAS用户类型')
+    welink_person_type = models.CharField(max_length=20, verbose_name='Welink人员类型')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    description = models.CharField(max_length=100, blank=True, null=True, verbose_name='描述')
+
+    class Meta:
+        verbose_name = '人员类型映射'
+        verbose_name_plural = '人员类型映射'
+        ordering = ['person_type']
+        indexes = [
+            models.Index(fields=['person_type']),
+            models.Index(fields=['is_active']),
+        ]
+
+    def __str__(self):
+        return f"{self.person_type}({self.description}) -> {self.email_domain}"
+
+
 class AccountCreationTask(models.Model):
     """账号创建任务模型"""
     TASK_STATUS_CHOICES = [

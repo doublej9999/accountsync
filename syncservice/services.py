@@ -14,7 +14,7 @@ try:
 except ImportError:
     PYPINYIN_AVAILABLE = False
 
-from syncservice.models import HrPerson, DepartmentMapping, AccountCreationTask, AccountCreationLog, SyncConfig
+from syncservice.models import HrPerson, DepartmentMapping, PersonTypeMapping, AccountCreationTask, AccountCreationLog, SyncConfig
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +49,13 @@ class AccountCreationService:
             if not department_mapping or not department_mapping.ou:
                 raise Exception(f"部门代码 {department_code} 对应的 OU 不存在，无法创建账号")
 
+            # 获取人员类型映射
+            mapping = self._get_person_type_mapping(person.person_type)
+            user_type = mapping.idaas_user_type if mapping else "supplier"
+
             # 生成用户名和邮箱
             username = self._generate_username(person.employee_number, person.full_name)
-            email = self._generate_unique_email(person.full_name, person.employee_number)
+            email = self._generate_unique_email(person.full_name, person.employee_number, person.person_type)
 
             # 构建请求数据
             data = {
@@ -60,7 +64,7 @@ class AccountCreationService:
                     "name": person.full_name,
                     "englishName": self._convert_to_pinyin(person.full_name),
                     "userName": username,
-                    "userType": "supplier",
+                    "userType": user_type,
                     "email": email,
                     "mobileCountryCode": "+86",
                     "mobile": person.telephone_number1 or person.telephone_number2 or "",
@@ -111,14 +115,18 @@ class AccountCreationService:
             # 获取部门映射
             department_mapping = self._get_department_mapping(department_code)
 
+            # 获取人员类型映射
+            mapping = self._get_person_type_mapping(person.person_type)
+            welink_person_type = mapping.welink_person_type if mapping else "外包"
+
             # 构建请求数据
             data = {
                 "corpUserId": person.employee_number,
                 "userNameCn": person.full_name,
                 "mobileNumber": person.telephone_number1 or person.telephone_number2 or "",
                 "corpDeptCodes": [department_mapping.idaas_departmentcode] if department_mapping else ["WW10010"],
-                "personType": "外包",
-                "userEmail": self._generate_unique_email(person.full_name, person.employee_number),
+                "personType": welink_person_type,
+                "userEmail": self._generate_unique_email(person.full_name, person.employee_number, person.person_type),
                 "employeeId": person.employee_number
             }
 
@@ -153,7 +161,7 @@ class AccountCreationService:
         """启用邮箱账号"""
         try:
             # 获取邮箱地址（应该已经在 IDAAS 创建时生成）
-            email = self._generate_unique_email(person.full_name, person.employee_number)
+            email = self._generate_unique_email(person.full_name, person.employee_number, person.person_type)
             username = self._generate_username(person.employee_number, person.full_name)
 
             # 构建请求数据
@@ -277,6 +285,13 @@ class AccountCreationService:
             logger.warning(f"未找到部门映射: {department_code}")
             return None
 
+    def _get_person_type_mapping(self, person_type: str) -> Optional[PersonTypeMapping]:
+        """获取人员类型的映射配置"""
+        try:
+            return PersonTypeMapping.objects.get(person_type=person_type, is_active=True)
+        except PersonTypeMapping.DoesNotExist:
+            return None
+
     def _convert_to_pinyin(self, chinese_name: str) -> str:
         """将中文名转换为拼音"""
         if not PYPINYIN_AVAILABLE:
@@ -297,10 +312,18 @@ class AccountCreationService:
         initials = ''.join([word[0] for word in pinyin.split() if word])
         return f"{initials}{employee_number}"
 
-    def _generate_unique_email(self, full_name: str, employee_number: str) -> str:
-        """生成唯一的邮箱地址"""
+    def _generate_unique_email(self, full_name: str, employee_number: str, person_type: str) -> str:
+        """根据人员类型生成唯一的邮箱地址"""
         base_email = self._convert_to_pinyin(full_name).lower()
-        domain = ConfigService.get_config('email_domain', '@qq.com')
+
+        # 根据人员类型获取映射配置
+        mapping = self._get_person_type_mapping(person_type)
+
+        # 获取邮箱域名：优先使用映射表，否则使用默认配置
+        if mapping and mapping.email_domain:
+            domain = mapping.email_domain
+        else:
+            domain = ConfigService.get_config('default_email_domain', '@qq.com')
 
         # 检查是否存在相同拼音的人
         existing_emails = set()

@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
             # 邮箱配置
             'email_config': [
-                ('email_domain', '@qq.com', '邮箱域名'),
+                ('default_email_domain', '@qq.com', '默认邮箱域名（当person_type无映射时使用）'),
                 ('email_auth_token', 'abcdefghijklmnopqrstuvwsyz', '邮箱认证令牌'),
             ]
         }

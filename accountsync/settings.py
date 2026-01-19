@@ -278,6 +278,11 @@ UNFOLD = {
                         "icon": "business",
                         "link": "/admin/syncservice/departmentmapping/",
                     },
+                    {
+                        "title": "人员类型映射",
+                        "icon": "business",
+                        "link": "/admin/syncservice/persontypemapping/",
+                    },
                 ],
             },
         ],
