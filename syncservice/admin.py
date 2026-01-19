@@ -34,6 +34,7 @@ class HrPersonAdmin(ModelAdmin):
     warn_unsaved_form = True
     list_fullwidth = True
     list_filter_submit = True
+    list_filter_sheet = False
 
     # 显示完整结果计数
     show_full_result_count = True

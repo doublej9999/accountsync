@@ -177,8 +177,19 @@ class AccountCreationService:
             response.raise_for_status()
 
             result = response.json()
-            if result.get('code') != "200":
-                raise Exception(f"邮箱服务 API 返回错误: {result}")
+
+            # 检查响应中的jsonValue来判断成功或失败
+            json_value = result.get('jsonValue', {})
+            success_items = json_value.get('success', [])
+            fail_items = json_value.get('fail', [])
+
+            # 如果fail数组有值，则创建失败
+            if fail_items:
+                raise Exception(f"邮箱创建失败: {fail_items}")
+
+            # 如果success数组有值，则创建成功
+            if not success_items:
+                raise Exception(f"邮箱服务 API 返回未知状态: {result}")
 
             return {
                 'account_identifier': email,
