@@ -1,0 +1,37 @@
+# AccountSync离线部署总结
+
+## 下载完成时间
+2026-01-19 22:54
+
+## 包统计
+- 总大小: 16MB
+- 包数量: 15个wheel包
+- 目标平台: Linux (manylinux2014_x86_64)
+- Python版本: 3.13
+
+## 主要包版本
+- Django: 6.0.1
+- DRF: 3.16.1
+- Celery: 5.6.2
+- PostgreSQL驱动: psycopg2-binary 2.9.11
+
+## 部署步骤
+1. 复制 offline-deployment/ 到Linux服务器
+2. 运行 ./install.sh
+3. 按提示配置环境
+
+## 验证方法
+运行以下命令验证安装:
+```bash
+python3 -c "import django, djangorestframework, celery; print('依赖安装成功')"
+```
+
+## 文件结构
+```
+offline-deployment/
+├── packages/          # 15个wheel包文件
+├── requirements.txt   # 原始依赖清单
+├── install.sh         # 安装脚本
+├── README.md          # 详细说明文档
+└── summary.txt        # 本总结文件
+```
