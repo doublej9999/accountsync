@@ -35,9 +35,8 @@ class Command(BaseCommand):
                 employee_status_list = employee_status_filter
                 self.stdout.write(f'指定员工状态: {", ".join(employee_status_list)}')
             else:
-                # 从配置中获取默认的员工状态
-                default_status = ConfigService.get_config('default_employee_status_for_tasks', '1')
-                employee_status_list = [s.strip() for s in default_status.split(',')]
+                # 从配置中获取有效的员工状态
+                employee_status_list = ConfigService.get_json_config('valid_employee_statuses', ['1'])
                 self.stdout.write(f'默认员工状态: {", ".join(employee_status_list)}')
 
             # 查询符合条件的HR人员
@@ -66,7 +65,6 @@ class Command(BaseCommand):
 
             # 执行模式
             created_tasks = []
-            skipped_tasks = []
 
             for person in persons_query:
                 tasks_for_person = self._get_tasks_for_person(person, enabled_account_types)
