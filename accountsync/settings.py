@@ -269,19 +269,19 @@ UNFOLD = {
                 "collapsible": False,
                 "items": [
                     {
-                        "title": "系统配置",
-                        "icon": "settings",
-                        "link": "/admin/syncservice/syncconfig/",
-                    },
-                    {
                         "title": "部门映射",
                         "icon": "business",
                         "link": "/admin/syncservice/departmentmapping/",
                     },
                     {
-                        "title": "人员类型映射",
-                        "icon": "business",
+                        "title": "人员类型",
+                        "icon": "people",
                         "link": "/admin/syncservice/persontypemapping/",
+                    },
+                    {
+                        "title": "系统配置",
+                        "icon": "settings",
+                        "link": "/admin/syncservice/syncconfig/",
                     },
                 ],
             },

@@ -39,11 +39,10 @@ class Command(BaseCommand):
             secret = ConfigService.get_config('hieds_secret')
             project = ConfigService.get_config('hieds_project')
             enterprise = ConfigService.get_config('hieds_enterprise')
-            person_project_id = ConfigService.get_config('hieds_person_project_id')
             tenant_id = ConfigService.get_config('hieds_tenant_id')
             page_size = ConfigService.get_int_config('hieds_page_size', page_size)
 
-            if not all([account, secret, project, enterprise, person_project_id, tenant_id]):
+            if not all([account, secret, project, enterprise, tenant_id]):
                 raise CommandError('缺少必要的环境变量配置')
 
             # 获取token
@@ -67,7 +66,7 @@ class Command(BaseCommand):
             while True:
                 self.stdout.write(f'获取第{cur_page}页数据...')
 
-                data = self._fetch_persons_page(token, person_project_id, tenant_id, page_size, cur_page, last_sync_time)
+                data = self._fetch_persons_page(token, project, tenant_id, page_size, cur_page, last_sync_time)
 
                 if not data or 'result' not in data:
                     self.stdout.write(self.style.WARNING(f'第{cur_page}页无数据'))

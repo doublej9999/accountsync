@@ -109,7 +109,7 @@ class SyncConfigAdmin(ModelAdmin):
         """显示配置分类"""
         categories = {
             'system_config': ['hr_sync_enabled', 'task_auto_creation_enabled', 'task_processing_enabled'],
-            'hr_sync_config': ['hieds_account', 'hieds_secret', 'hieds_project', 'hieds_enterprise', 'hieds_person_project_id', 'hieds_tenant_id', 'hieds_page_size'],
+            'hr_sync_config': ['hieds_account', 'hieds_secret', 'hieds_project', 'hieds_enterprise', 'hieds_tenant_id', 'hieds_page_size'],
             'task_config': ['account_creation_max_retries', 'valid_employee_statuses'],
             'idaas_config': ['idaas_account', 'idaas_secret', 'idaas_enterprise_id'],
             'welink_config': ['welink_client_id', 'welink_client_secret'],
