@@ -81,38 +81,6 @@ class HrPersonViewSet(ModelViewSet):
         serializer = HrPersonAccountSerializer(accounts, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'])
-    def account_stats(self, request):
-        """获取账号创建统计"""
-        total_persons = HrPerson.objects.count()
-        total_accounts = HrPersonAccount.objects.count()
-        created_accounts = HrPersonAccount.objects.filter(is_created=True).count()
-
-        # 按账号类型统计
-        stats_by_type = {}
-        for account_type, display_name in HrPersonAccount.ACCOUNT_TYPE_CHOICES:
-            type_accounts = HrPersonAccount.objects.filter(account_type=account_type)
-            type_created = type_accounts.filter(is_created=True).count()
-            type_total = type_accounts.count()
-
-            stats_by_type[account_type] = {
-                'total': type_total,
-                'created': type_created,
-                'pending': type_total - type_created,
-                'completion_rate': f"{(type_created/type_total*100):.1f}%" if type_total > 0 else "0%"
-            }
-
-        data = {
-            'total_persons': total_persons,
-            'total_accounts': total_accounts,
-            'created_accounts': created_accounts,
-            'pending_accounts': total_accounts - created_accounts,
-            'overall_completion_rate': f"{(created_accounts/total_accounts*100):.1f}%" if total_accounts > 0 else "0%",
-            'stats_by_type': stats_by_type
-        }
-
-        return Response(data)
-
 class HrPersonAccountFilter(django_filters.FilterSet):
     account_type = django_filters.CharFilter(lookup_expr="exact")
     is_created = django_filters.BooleanFilter()
