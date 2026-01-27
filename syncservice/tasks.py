@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.core.management import call_command
 import logging
+from syncservice.models import SyncConfig
 
 logger = logging.getLogger(__name__)
 
@@ -8,6 +9,12 @@ logger = logging.getLogger(__name__)
 @shared_task
 def sync_hr_persons_task():
     """同步HR人员数据的定时任务"""
+    # 检查是否启用HR同步
+    config_value = SyncConfig.get_config('hr_sync_enabled', 'true')
+    if config_value.lower() != 'true':
+        logger.info("HR数据同步已禁用，跳过执行")
+        return "HR数据同步已禁用"
+
     try:
         logger.info("开始执行定时HR数据同步任务")
         call_command('sync_hr_persons')
@@ -21,6 +28,12 @@ def sync_hr_persons_task():
 @shared_task
 def create_account_tasks_task():
     """创建账号任务的定时任务"""
+    # 检查是否启用任务自动创建
+    config_value = SyncConfig.get_config('task_auto_creation_enabled', 'true')
+    if config_value.lower() != 'true':
+        logger.info("账号任务自动创建已禁用，跳过执行")
+        return "账号任务自动创建已禁用"
+
     try:
         logger.info("开始执行账号任务创建定时任务")
         call_command('create_account_tasks')
@@ -34,6 +47,12 @@ def create_account_tasks_task():
 @shared_task
 def process_account_creation_tasks_task():
     """处理账号创建任务的定时任务"""
+    # 检查是否启用任务处理
+    config_value = SyncConfig.get_config('task_processing_enabled', 'true')
+    if config_value.lower() != 'true':
+        logger.info("账号创建任务处理已禁用，跳过执行")
+        return "账号创建任务处理已禁用"
+
     try:
         logger.info("开始执行账号创建任务处理定时任务")
         call_command('process_account_creation_tasks')
