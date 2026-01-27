@@ -36,6 +36,12 @@ python manage.py sync_hr_persons
 
 # 强制全量同步（忽略时间戳）
 python manage.py sync_hr_persons --force-full-sync
+
+# 初始化人员账号数据（首次全量同步，创建idaas/welink/email账号记录）
+python manage.py init_person_accounts
+
+# 模拟运行（查看会创建什么，不实际写入数据库）
+python manage.py init_person_accounts --dry-run
 ```
 
 ### API接口
@@ -193,6 +199,64 @@ Content-Type: application/json
 - `valid_employee_statuses`: 有效员工状态列表
 - `account_creation_max_retries`: 最大重试次数
 - `max_tasks_per_batch`: 每批最大任务数
+
+## 4. 人员账号初始化命令 (init_person_accounts)
+
+### 职责
+- 为所有已同步的人员批量创建账号记录
+- 仅用于首次全量同步场景
+- 不创建任务，直接初始化账号数据
+
+### 使用场景
+- 系统首次部署后，已有大量人员数据需要初始化
+- 需要为历史人员批量创建账号记录
+- 数据迁移或系统升级后的账号数据重建
+
+### 功能特性
+1. **批量创建账号记录**
+   - 为每个人员创建 idaas、welink、email 三种账号记录
+   - idaas 和 welink 账号标识使用工号（employee_number）
+   - email 账号标识置为空（允许后续同步）
+
+2. **账号状态设置**
+   - 所有账号的 `is_created` 标记为 `True`（已创建状态）
+   - 邮箱账号 `account_identifier` 为 `None`（待后续同步）
+
+3. **幂等性保证**
+   - 可重复运行，已存在的记录不会重复创建
+   - 自动更新账号标识不一致的记录
+
+4. **进度跟踪**
+   - 每处理 100 条记录显示进度
+   - 完成后输出详细统计信息
+
+### 命令参数
+```bash
+# 正式运行
+python manage.py init_person_accounts
+
+# 模拟运行（不实际写入数据库）
+python manage.py init_person_accounts --dry-run
+```
+
+### 输出统计
+- 总人员数
+- IDAAS 账号：新创建、已存在、已更新数量
+- Welink 账号：新创建、已存在、已更新数量
+- 邮箱账号：新创建、已存在数量
+- 错误数量
+
+### 注意事项
+- 此命令不创建 AccountCreationTask 任务
+- 跳过工号为空的人员记录
+- 建议在系统初始化阶段使用，不适合日常运维
+
+### 与其他命令的区别
+| 命令 | 用途 | 创建任务 | 使用场景 |
+|------|------|----------|----------|
+| `sync_hr_persons` | 同步HR数据 | 否 | 日常增量同步 |
+| `create_account_tasks` | 创建账号任务 | 是 | 自动化账号创建流程 |
+| `init_person_accounts` | 初始化账号记录 | 否 | 首次全量初始化 |
 
 ## 监控和日志
 

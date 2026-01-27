@@ -13,8 +13,11 @@ pip install -r requirements.txt
 # 数据库迁移
 python manage.py migrate
 
-# 初始化配置
-python manage.py init_sync_config
+# 初始化系统配置
+python manage.py init_system_data
+
+# 初始化人员账号数据（首次全量同步）
+python manage.py init_person_accounts
 ```
 
 ### 2. 启动服务
