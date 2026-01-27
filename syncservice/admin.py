@@ -9,7 +9,7 @@ from unfold.contrib.filters.admin import (
 
 from syncservice.models import (
     HrPerson, HrPersonAccount, SyncConfig, DepartmentMapping, PersonTypeMapping,
-    AccountCreationTask, AccountCreationLog
+    AccountCreationTask, AccountCreationLog, AccountCreationRequest, AccountCreationRequestItem
 )
 from syncservice.services import AccountCreationService
 
@@ -18,14 +18,14 @@ from syncservice.services import AccountCreationService
 @admin.register(HrPerson)
 class HrPersonAdmin(ModelAdmin):
 
-    list_display = ['employee_number', 'full_name', 'employee_status', 'person_type', 'creation_date']
+    list_display = ['employee_number', 'full_name', 'employee_status', 'person_type', 'creation_date','email_address','person_dept']
     list_filter = [
         'employee_status',
         'person_type',
         ('creation_date', RangeDateFilter),
         ('last_update_date', RangeDateFilter),
     ]
-    search_fields = ['employee_number', 'full_name', 'english_name', 'email_address']
+    search_fields = ['employee_number', 'full_name', 'english_name']
     readonly_fields = ['person_id', 'creation_date', 'last_update_date']
     list_per_page = 20  # 人员数据分页
 
@@ -389,3 +389,94 @@ class AccountCreationLogAdmin(ModelAdmin):
             return obj.error_message[:97] + "..."
         return obj.error_message
     get_error_preview.short_description = '错误信息'
+
+
+class AccountCreationRequestItemInline(TabularInline):
+    """账号创建请求项内联显示"""
+    model = AccountCreationRequestItem
+    readonly_fields = [
+        'employee_number', 'employee_name', 'department_code',
+        'phone_number', 'partner_company', 'country',
+        'status', 'hr_person', 'error_message', 'created_at', 'updated_at'
+    ]
+    can_delete = False
+    extra = 0
+    max_num = 0
+    ordering = ['id']
+
+    # Unfold specific configurations
+    compressed_fields = True
+
+
+@admin.register(AccountCreationRequest)
+class AccountCreationRequestAdmin(ModelAdmin):
+    list_display = [
+        'request_id', 'origin_system', 'business_key', 'status',
+        'total_users', 'processed_users', 'created_at', 'completed_at'
+    ]
+    inlines = [AccountCreationRequestItemInline]
+    list_filter = [
+        'status',
+        'origin_system',
+        ('created_at', RangeDateTimeFilter),
+        ('completed_at', RangeDateTimeFilter),
+    ]
+    search_fields = ['request_id', 'business_key', 'origin_system']
+    readonly_fields = [
+        'request_id', 'origin_system', 'business_key', 'account_type',
+        'employee_type', 'system_list', 'status', 'total_users',
+        'processed_users', 'error_summary', 'created_at', 'updated_at', 'completed_at'
+    ]
+    list_per_page = 20
+
+    # Unfold specific configurations
+    compressed_fields = True
+    warn_unsaved_form = True
+    list_fullwidth = True
+    list_filter_submit = True
+    list_filter_sheet = False
+
+    # 显示完整结果计数
+    show_full_result_count = True
+
+    def get_queryset(self, request):
+        """优化查询，避免 N+1 查询"""
+        return super().get_queryset(request).prefetch_related('items')
+
+
+@admin.register(AccountCreationRequestItem)
+class AccountCreationRequestItemAdmin(ModelAdmin):
+    list_display = [
+        'request', 'employee_number', 'employee_name', 'department_code',
+        'status', 'hr_person', 'created_at'
+    ]
+    list_filter = [
+        'status',
+        'request__origin_system',
+        ('created_at', RangeDateTimeFilter),
+    ]
+    search_fields = [
+        'request__request_id', 'employee_number', 'employee_name',
+        'hr_person__employee_number'
+    ]
+    readonly_fields = [
+        'request', 'employee_number', 'employee_name', 'department_code',
+        'phone_number', 'partner_company', 'country', 'status',
+        'hr_person', 'error_message', 'created_at', 'updated_at'
+    ]
+    raw_id_fields = ['request', 'hr_person']
+    list_per_page = 25
+
+    # Unfold specific configurations
+    compressed_fields = True
+    warn_unsaved_form = True
+    list_fullwidth = True
+    list_filter_submit = True
+    list_filter_sheet = False
+
+    # 显示完整结果计数
+    show_full_result_count = True
+
+    def get_queryset(self, request):
+        """优化查询，避免 N+1 查询"""
+        return super().get_queryset(request).select_related('request', 'hr_person')

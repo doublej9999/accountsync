@@ -209,7 +209,7 @@ paths:
   /account-creation/create_accounts/:
     post:
       operationId: account_creation_create_accounts_create
-      description: 批量创建账号
+      description: 批量创建账号 - 接收请求并写入缓冲区，由定时任务统一处理
       tags:
       - account-creation
       requestBody:
@@ -234,6 +234,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountCreationTask'
+          description: ''
+  /account-creation/requests/{request_id}/:
+    get:
+      operationId: account_creation_requests_retrieve
+      description: 查询账号创建请求的状态和详情
+      parameters:
+      - in: path
+        name: request_id
+        schema:
+          type: string
+        description: 请求ID
+        required: true
+      tags:
+      - account-creation
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountCreationRequestDetail'
           description: ''
   /department-mappings/:
     get:
@@ -836,23 +860,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/HrPerson'
           description: ''
-  /hr-persons/account_stats/:
-    get:
-      operationId: hr_persons_account_stats_retrieve
-      description: 获取账号创建统计
-      tags:
-      - hr-persons
-      security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HrPerson'
-          description: ''
   /hr-persons/sync_status/:
     get:
       operationId: hr_persons_sync_status_retrieve
@@ -1155,6 +1162,189 @@ components:
       - id
       - task
       - task_info
+    AccountCreationRequestDetail:
+      type: object
+      description: 账号创建请求详情序列化器
+      properties:
+        request_id:
+          type: string
+          readOnly: true
+          title: 请求ID
+        origin_system:
+          type: string
+          title: 来源系统
+          maxLength: 50
+        business_key:
+          type: string
+          title: 业务键
+          maxLength: 50
+        account_type:
+          type: string
+          title: 账号类型
+          maxLength: 20
+        employee_type:
+          type: string
+          title: 员工类型
+          maxLength: 10
+        system_list:
+          title: 系统列表
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AccountCreationRequestDetailStatusEnum'
+          readOnly: true
+          title: 请求状态
+        status_display:
+          type: string
+          readOnly: true
+        total_users:
+          type: integer
+          readOnly: true
+          title: 总用户数
+        processed_users:
+          type: integer
+          readOnly: true
+          title: 已处理用户数
+        progress:
+          type: string
+          readOnly: true
+        error_summary:
+          readOnly: true
+          nullable: true
+          title: 错误摘要
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: 完成时间
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountCreationRequestItem'
+          readOnly: true
+      required:
+      - account_type
+      - business_key
+      - completed_at
+      - created_at
+      - employee_type
+      - error_summary
+      - items
+      - origin_system
+      - processed_users
+      - progress
+      - request_id
+      - status
+      - status_display
+      - system_list
+      - total_users
+      - updated_at
+    AccountCreationRequestDetailStatusEnum:
+      enum:
+      - pending
+      - processing
+      - completed
+      - partial_failed
+      - failed
+      type: string
+      description: |-
+        * `pending` - 待处理
+        * `processing` - 处理中
+        * `completed` - 已完成
+        * `partial_failed` - 部分失败
+        * `failed` - 失败
+    AccountCreationRequestItem:
+      type: object
+      description: 账号创建请求项序列化器
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        employee_number:
+          type: string
+          title: 员工编号
+          maxLength: 50
+        employee_name:
+          type: string
+          title: 员工姓名
+          maxLength: 100
+        department_code:
+          type: string
+          title: 部门代码
+          maxLength: 50
+        phone_number:
+          type: string
+          title: 电话号码
+          maxLength: 20
+        partner_company:
+          type: string
+          nullable: true
+          title: 合作公司
+          maxLength: 100
+        country:
+          type: string
+          title: 国家
+          maxLength: 50
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AccountCreationRequestItemStatusEnum'
+          title: 状态
+        status_display:
+          type: string
+          readOnly: true
+        hr_person_info:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        error_message:
+          type: string
+          nullable: true
+          title: 错误信息
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: 更新时间
+      required:
+      - country
+      - created_at
+      - department_code
+      - employee_name
+      - employee_number
+      - hr_person_info
+      - id
+      - phone_number
+      - status_display
+      - updated_at
+    AccountCreationRequestItemStatusEnum:
+      enum:
+      - pending
+      - synced
+      - task_created
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `pending` - 待处理
+        * `synced` - 已同步
+        * `task_created` - 任务已创建
+        * `completed` - 已完成
+        * `failed` - 失败
     AccountCreationTask:
       type: object
       description: 账号创建任务序列化器
@@ -1190,7 +1380,7 @@ components:
           title: 账号类型
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/AccountCreationTaskStatusEnum'
           title: 任务状态
         result_data:
           readOnly: true
@@ -1236,6 +1426,18 @@ components:
       - status_display
       - task_id
       - updated_at
+    AccountCreationTaskStatusEnum:
+      enum:
+      - pending
+      - processing
+      - completed
+      - failed
+      type: string
+      description: |-
+        * `pending` - 待处理
+        * `processing` - 处理中
+        * `completed` - 已完成
+        * `failed` - 失败
     AccountTypeEnum:
       enum:
       - idaas
@@ -1631,7 +1833,7 @@ components:
           title: 账号类型
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/AccountCreationTaskStatusEnum'
           title: 任务状态
         result_data:
           readOnly: true
@@ -1883,18 +2085,6 @@ components:
           nullable: true
           title: 描述
           maxLength: 200
-    StatusEnum:
-      enum:
-      - pending
-      - processing
-      - completed
-      - failed
-      type: string
-      description: |-
-        * `pending` - 待处理
-        * `processing` - 处理中
-        * `completed` - 已完成
-        * `failed` - 失败
     SyncConfig:
       type: object
       properties:

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 
-from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationLog
+from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationLog, AccountCreationRequest, AccountCreationRequestItem
 
 
 class HrPersonAccountSerializer(serializers.ModelSerializer):
@@ -165,3 +165,80 @@ class TaskExecutionSerializer(serializers.Serializer):
 
     # 任务处理参数
     max_tasks = serializers.IntegerField(default=50, min_value=1, required=False)
+
+
+class AccountCreationRequestSerializer(serializers.ModelSerializer):
+    """账号创建请求序列化器"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    # 字段别名，支持驼峰命名
+    originSystem = serializers.CharField(source='origin_system', required=True)
+    businessKey = serializers.CharField(source='business_key', required=True)
+    accountType = serializers.CharField(source='account_type', required=True)
+    employeeType = serializers.CharField(source='employee_type', required=True)
+    systemList = serializers.ListField(
+        child=serializers.ChoiceField(choices=['idaas', 'welink', 'email']),
+        source='system_list',
+        required=True
+    )
+    userList = serializers.ListField(
+        child=serializers.DictField(),
+        required=True,
+        write_only=True
+    )
+
+    class Meta:
+        model = AccountCreationRequest
+        fields = ['request_id', 'originSystem', 'businessKey',
+                  'accountType', 'employeeType',
+                  'systemList', 'userList', 'status', 'status_display',
+                  'total_users', 'processed_users', 'error_summary',
+                  'created_at', 'updated_at', 'completed_at']
+        read_only_fields = ['request_id', 'status', 'total_users', 'processed_users',
+                            'error_summary', 'created_at', 'updated_at', 'completed_at']
+
+
+class AccountCreationRequestItemSerializer(serializers.ModelSerializer):
+    """账号创建请求项序列化器"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    hr_person_info = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountCreationRequestItem
+        fields = ['id', 'employee_number', 'employee_name', 'department_code',
+                  'phone_number', 'partner_company', 'country', 'status',
+                  'status_display', 'hr_person_info', 'error_message',
+                  'created_at', 'updated_at']
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_hr_person_info(self, obj):
+        if obj.hr_person:
+            return {
+                'employee_number': obj.hr_person.employee_number,
+                'full_name': obj.hr_person.full_name,
+                'email': obj.hr_person.email_address
+            }
+        return None
+
+
+class AccountCreationRequestDetailSerializer(serializers.ModelSerializer):
+    """账号创建请求详情序列化器"""
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    items = AccountCreationRequestItemSerializer(many=True, read_only=True)
+    progress = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AccountCreationRequest
+        fields = ['request_id', 'origin_system', 'business_key', 'account_type',
+                  'employee_type', 'system_list', 'status', 'status_display',
+                  'total_users', 'processed_users', 'progress', 'error_summary',
+                  'created_at', 'updated_at', 'completed_at', 'items']
+        read_only_fields = ['request_id', 'status', 'total_users', 'processed_users',
+                            'error_summary', 'created_at', 'updated_at', 'completed_at']
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_progress(self, obj):
+        if obj.total_users == 0:
+            return "0%"
+        percentage = (obj.processed_users / obj.total_users) * 100
+        return f"{percentage:.1f}%"

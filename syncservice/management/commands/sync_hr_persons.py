@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 import time
 
-from syncservice.models import HrPerson, HrPersonAccount, SyncConfig
+from syncservice.models import HrPerson, HrPersonAccount, SyncConfig, AccountCreationRequest, AccountCreationRequestItem
 from syncservice.services import ConfigService
 
 
@@ -34,6 +34,12 @@ class Command(BaseCommand):
         self.stdout.write('开始同步人员数据...')
 
         try:
+            # 第一步：处理账号创建请求缓冲区
+            self.stdout.write('\n=== 处理账号创建请求缓冲区 ===')
+            self._process_account_creation_requests()
+
+            # 第二步：同步HR系统数据
+            self.stdout.write('\n=== 同步HR系统数据 ===')
             # 获取配置
             account = ConfigService.get_config('hieds_account')
             secret = ConfigService.get_config('hieds_secret')
@@ -105,6 +111,89 @@ class Command(BaseCommand):
             # 记录失败状态
             SyncConfig.set_config('last_sync_status', f'failed: {str(e)}', '上次同步状态')
             raise CommandError(f'同步失败: {str(e)}')
+
+    def _process_account_creation_requests(self):
+        """处理账号创建请求缓冲区"""
+        import hashlib
+
+        # 获取所有 pending 状态的请求
+        pending_requests = AccountCreationRequest.objects.filter(status='pending')
+
+        if not pending_requests.exists():
+            self.stdout.write('没有待处理的账号创建请求')
+            return
+
+        self.stdout.write(f'找到 {pending_requests.count()} 个待处理的请求')
+
+        for request in pending_requests:
+            self.stdout.write(f'\n处理请求: {request.request_id}')
+
+            # 更新请求状态为 processing
+            request.update_status('processing')
+
+            # 处理请求中的每个用户
+            items = request.items.filter(status='pending')
+            synced_count = 0
+            failed_count = 0
+
+            for item in items:
+                try:
+                    # 获取或创建人员记录
+                    person_id = item.employee_number
+
+                    try:
+                        person_id_int = int(person_id)
+                    except ValueError:
+                        person_id_int = int(hashlib.md5(person_id.encode()).hexdigest()[:7], 16)
+
+                    person, created = HrPerson.objects.update_or_create(
+                        employee_number=item.employee_number,
+                        defaults={
+                            'person_id': person_id_int,
+                            'full_name': item.employee_name,
+                            'telephone_number1': item.phone_number,
+                            'person_type': request.account_type,
+                            'employee_status': request.employee_type,
+                            'tenant_id': request.business_key,
+                            'created_by': 'account_creation_api',
+                            'last_updated_by': 'account_creation_api',
+                            'creation_date': timezone.now(),
+                            'last_update_date': timezone.now(),
+                            'person_dept': [{
+                                'department_code': item.department_code,
+                                'partner_company': item.partner_company or '',
+                                'country': item.country
+                            }]
+                        }
+                    )
+
+                    # 更新请求项
+                    item.hr_person = person
+                    item.status = 'synced'
+                    item.save()
+
+                    # 如果是新创建的人员，创建默认账号记录
+                    if created:
+                        accounts_created = HrPersonAccount.create_default_accounts(person)
+                        self.stdout.write(f'  新增人员: {person.employee_number} - {person.full_name}')
+                        self.stdout.write(f'    创建账号记录: {len(accounts_created)} 个')
+                    else:
+                        self.stdout.write(f'  更新人员: {person.employee_number} - {person.full_name}')
+
+                    synced_count += 1
+
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'  处理用户 {item.employee_number} 失败: {e}'))
+                    item.status = 'failed'
+                    item.error_message = str(e)
+                    item.save()
+                    failed_count += 1
+
+            # 更新请求的已处理用户数
+            request.processed_users = synced_count + failed_count
+            request.save()
+
+            self.stdout.write(f'请求 {request.request_id} 处理完成: 成功 {synced_count}, 失败 {failed_count}')
 
     def _get_token(self, account, secret, project, enterprise):
         """获取访问token"""

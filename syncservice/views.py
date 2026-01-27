@@ -5,19 +5,21 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.viewsets import ModelViewSet, ViewSet
 
-from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask
+from syncservice.models import HrPerson, SyncConfig, HrPersonAccount, DepartmentMapping, AccountCreationTask, AccountCreationRequest, AccountCreationRequestItem
 from syncservice.serializer import (
     HrPersonSerializer, HrPersonDetailSerializer, HrPersonAccountSerializer,
     SyncConfigSerializer, SyncStatusSerializer,
     DepartmentMappingSerializer, AccountCreationRequestSerializer,
     AccountCreationTaskSerializer, UserCreationDataSerializer,
-    AccountCreationLogSerializer, TaskExecutionSerializer
+    AccountCreationLogSerializer, TaskExecutionSerializer,
+    AccountCreationRequestDetailSerializer, AccountCreationRequestItemSerializer
 )
 
 
@@ -130,8 +132,9 @@ class AccountCreationViewSet(ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def create_accounts(self, request):
-        """批量创建账号"""
+        """批量创建账号 - 接收请求并写入缓冲区，由定时任务统一处理"""
         import logging
+        import uuid
         logger = logging.getLogger(__name__)
 
         serializer = AccountCreationRequestSerializer(data=request.data)
@@ -141,151 +144,81 @@ class AccountCreationViewSet(ModelViewSet):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        origin_system = serializer.validated_data['originSystem']
-        business_key = serializer.validated_data['businessKey']
-        account_type = serializer.validated_data['accountType']
-        employee_type = serializer.validated_data['employeeType']
-        system_list = serializer.validated_data['systemList']
+        origin_system = serializer.validated_data['origin_system']
+        business_key = serializer.validated_data['business_key']
+        account_type = serializer.validated_data['account_type']
+        employee_type = serializer.validated_data['employee_type']
+        system_list = serializer.validated_data['system_list']
         user_list = serializer.validated_data['userList']
 
         # 记录请求日志
-        logger.info(f'接收到账号创建请求: {origin_system} - {business_key} - {system_list}')
+        logger.info(f'接收到账号创建请求: {origin_system} - {business_key} - {len(user_list)}个用户')
 
-        created_tasks = []
-        errors = []
+        # 生成唯一请求ID
+        request_id = f"req_{timezone.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:12]}"
 
+        # 创建账号创建请求
+        creation_request = AccountCreationRequest.objects.create(
+            request_id=request_id,
+            origin_system=origin_system,
+            business_key=business_key,
+            account_type=account_type,
+            employee_type=employee_type,
+            system_list=system_list,
+            total_users=len(user_list)
+        )
+
+        # 创建请求项
         for user_data in user_list:
             user_serializer = UserCreationDataSerializer(data=user_data)
             if not user_serializer.is_valid():
-                errors.append({
-                    'user': user_data,
-                    'errors': user_serializer.errors
-                })
+                logger.warning(f'用户数据验证失败: {user_serializer.errors}')
                 continue
 
-            employee_number = user_serializer.validated_data['employeeNumber']
-            employee_name = user_serializer.validated_data['employeeName']
-            department_code = user_serializer.validated_data['departmentCode']
-            phone_number = user_serializer.validated_data['phoneNumber']
-            partner_company = user_serializer.validated_data.get('partnerCompany', '')
-            country = user_serializer.validated_data['country']
-
-            try:
-                # 获取或创建人员记录
-                # 注意：person_id 是主键，需要从业务系统中获取或生成
-                # 这里暂时使用 employee_number 的数值部分作为 person_id
-                # todo 这里的person_id后续需要保持与同步的一致,后面需要重新在获取人员信息，更新person_id
-                try:
-                    # 尝试从 employee_number 中提取数字部分
-                    person_id = employee_number
-                except ValueError:
-                    # 如果无法提取，使用 hash 的后8位作为较小的整数
-                    import hashlib
-                    person_id = int(hashlib.md5(employee_number.encode()).hexdigest()[:7], 16)
-
-                person, person_created = HrPerson.objects.get_or_create(
-                    employee_number=employee_number,
-                    defaults={
-                        'person_id': person_id,
-                        'full_name': employee_name,
-                        'telephone_number1': phone_number,
-                        'person_type': account_type,
-                        'employee_status': employee_type,
-                        'tenant_id': business_key,
-                        'created_by': 'account_creation_api',
-                        'last_updated_by': 'account_creation_api',
-                        'creation_date': timezone.now(),
-                        'last_update_date': timezone.now(),
-                        'person_dept': [{
-                            'department_code': department_code,
-                            'partner_company': partner_company,
-                            'country': country
-                        }]
-                    }
-                )
-
-                if not person_created:
-                    # 更新现有人员信息
-                    person.full_name = employee_name
-                    person.telephone_number1 = phone_number
-                    person.person_type = account_type
-                    person.employee_status = employee_type
-                    person.last_update_date = timezone.now()
-                    person.last_updated_by = 'account_creation_api'
-                    if not person.person_dept:
-                        person.person_dept = [{
-                            'department_code': department_code,
-                            'partner_company': partner_company,
-                            'country': country
-                        }]
-                    person.save()
-
-                # 创建账号创建任务
-                tasks_for_user = self._create_account_tasks_for_user(
-                    person, system_list, origin_system, business_key
-                )
-                created_tasks.extend(tasks_for_user)
-
-            except Exception as e:
-                errors.append({
-                    'user': user_data,
-                    'error': str(e)
-                })
-
-        response_data = {
-            'success': len(errors) == 0,
-            'created_tasks': len(created_tasks),
-            'errors': errors,
-            'tasks': AccountCreationTaskSerializer(created_tasks, many=True).data if created_tasks else []
-        }
-
-        return Response(response_data, status=status.HTTP_201_CREATED if len(errors) == 0 else status.HTTP_207_MULTI_STATUS)
-
-    def _create_account_tasks_for_user(self, person, system_list, origin_system, business_key):
-        """为用户创建账号任务"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        created_tasks = []
-
-        # 定义账号创建顺序
-        account_order = {
-            'idaas': 1,
-            'welink': 2,
-            'email': 3
-        }
-
-        # 按顺序排序系统列表
-        sorted_systems = sorted(system_list, key=lambda x: account_order.get(x, 999))
-
-        previous_task = None
-
-        for account_type in sorted_systems:
-            # 检查是否已存在任务
-            existing_task = AccountCreationTask.objects.filter(
-                person=person,
-                account_type=account_type,
-            ).first()
-
-            if existing_task:
-                logger.info(f'用户 {person.employee_number} 的 {account_type} 账号任务已存在，跳过')
-                previous_task = existing_task
-                continue
-
-            # 创建新任务
-            task = AccountCreationTask.objects.create(
-                task_id=f"{business_key}_{person.employee_number}_{account_type}_{timezone.now().timestamp()}",
-                person=person,
-                account_type=account_type,
-                depends_on_task=previous_task
+            AccountCreationRequestItem.objects.create(
+                request=creation_request,
+                employee_number=user_serializer.validated_data['employeeNumber'],
+                employee_name=user_serializer.validated_data['employeeName'],
+                department_code=user_serializer.validated_data['departmentCode'],
+                phone_number=user_serializer.validated_data['phoneNumber'],
+                partner_company=user_serializer.validated_data.get('partnerCompany', ''),
+                country=user_serializer.validated_data['country']
             )
 
-            created_tasks.append(task)
-            previous_task = task
+            logger.info(f'已创建账号创建请求: {request_id}')
 
-            logger.info(f'创建任务: {task.task_id} - {person.employee_number} - {account_type}')
+        response_data = {
+            'success': True,
+            'requestId': request_id,
+            'status': 'pending',
+            'totalUsers': len(user_list),
+            'message': '请求已提交，正在处理中'
+        }
 
-        return created_tasks
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='request_id',
+                type=str,
+                location='path',
+                description='请求ID'
+            )
+        ],
+        responses={200: AccountCreationRequestDetailSerializer}
+    )
+    @action(detail=False, methods=['get'], url_path='requests/(?P<request_id>[^/.]+)')
+    def get_request_status(self, request, request_id):
+        """查询账号创建请求的状态和详情"""
+        try:
+            creation_request = AccountCreationRequest.objects.get(request_id=request_id)
+            serializer = AccountCreationRequestDetailSerializer(creation_request)
+            return Response(serializer.data)
+        except AccountCreationRequest.DoesNotExist:
+            return Response({
+                'error': f'请求 {request_id} 不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class TaskManagementViewSet(ViewSet):

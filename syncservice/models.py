@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class HrPersonAccount(models.Model):
@@ -362,3 +363,116 @@ class AccountCreationLog(models.Model):
 
     def __str__(self):
         return f"{self.task.task_id} - 第{self.execution_attempt}次执行 - {self.error_message[:50]}..."
+
+
+class AccountCreationRequest(models.Model):
+    """账号创建请求 - 存储接口接收的创建请求"""
+
+    REQUEST_STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('processing', '处理中'),
+        ('completed', '已完成'),
+        ('partial_failed', '部分失败'),
+        ('failed', '失败'),
+    ]
+
+    request_id = models.CharField(max_length=100, unique=True, verbose_name='请求ID')
+    origin_system = models.CharField(max_length=50, verbose_name='来源系统')
+    business_key = models.CharField(max_length=50, verbose_name='业务键')
+    account_type = models.CharField(max_length=20, verbose_name='账号类型')
+    employee_type = models.CharField(max_length=10, verbose_name='员工类型')
+    system_list = models.JSONField(verbose_name='系统列表')
+
+    status = models.CharField(
+        max_length=20,
+        choices=REQUEST_STATUS_CHOICES,
+        default='pending',
+        verbose_name='请求状态'
+    )
+
+    total_users = models.IntegerField(default=0, verbose_name='总用户数')
+    processed_users = models.IntegerField(default=0, verbose_name='已处理用户数')
+    error_summary = models.JSONField(blank=True, null=True, verbose_name='错误摘要')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    completed_at = models.DateTimeField(blank=True, null=True, verbose_name='完成时间')
+
+    class Meta:
+        verbose_name = '账号创建请求'
+        verbose_name_plural = '账号创建请求'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['request_id']),
+            models.Index(fields=['status']),
+            models.Index(fields=['created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.request_id} - {self.get_status_display()}"
+
+    def update_status(self, new_status):
+        """更新请求状态"""
+        self.status = new_status
+        if new_status in ['completed', 'partial_failed', 'failed']:
+            self.completed_at = timezone.now()
+        self.save()
+
+
+class AccountCreationRequestItem(models.Model):
+    """账号创建请求项 - 存储请求中的用户数据"""
+
+    ITEM_STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('synced', '已同步'),
+        ('task_created', '任务已创建'),
+        ('completed', '已完成'),
+        ('failed', '失败'),
+    ]
+
+    request = models.ForeignKey(
+        AccountCreationRequest,
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='请求'
+    )
+
+    employee_number = models.CharField(max_length=50, verbose_name='员工编号')
+    employee_name = models.CharField(max_length=100, verbose_name='员工姓名')
+    department_code = models.CharField(max_length=50, verbose_name='部门代码')
+    phone_number = models.CharField(max_length=20, verbose_name='电话号码')
+    partner_company = models.CharField(max_length=100, blank=True, null=True, verbose_name='合作公司')
+    country = models.CharField(max_length=50, verbose_name='国家')
+
+    status = models.CharField(
+        max_length=20,
+        choices=ITEM_STATUS_CHOICES,
+        default='pending',
+        verbose_name='状态'
+    )
+
+    hr_person = models.ForeignKey(
+        HrPerson,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='request_items',
+        verbose_name='关联HR人员'
+    )
+
+    error_message = models.TextField(blank=True, null=True, verbose_name='错误信息')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '账号创建请求项'
+        verbose_name_plural = '账号创建请求项'
+        ordering = ['request', 'id']
+        indexes = [
+            models.Index(fields=['request', 'status']),
+            models.Index(fields=['employee_number']),
+        ]
+
+    def __str__(self):
+        return f"{self.request.request_id} - {self.employee_number} - {self.get_status_display()}"
